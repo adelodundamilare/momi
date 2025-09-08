@@ -25,64 +25,16 @@ async def signup(user_data: auth_schema.UserCreate, db: Session = Depends(get_db
     try:
 
         user = user_service.create_user(db, user_data=user_data)
-        verification_code =  auth_service.generate_code()
-        user_service.update_user(db, user, user_data={
-            "verification_code": verification_code,
-            "verification_code_expires_at": datetime.utcnow() + timedelta(minutes=30)
-        })
-
-        # Send welcome email
-        EmailService.send_email(
-            to_email=user.email,
-            subject="Welcome and Verify Your Account",
-            template_name="welcome-verify.html",
-            template_context={
-                "name": user.full_name,
-                "code": verification_code
-            }
-        )
-
+        
         return {"message": "User created successfully"}
     except Exception as e:
         logger.error(f"Signup failed: {str(e)}")
-        raise
-
-@router.post("/resend-verification-code")
-async def resend_verification_code(user_data: auth_schema.UserEmail, db: Session = Depends(get_db)):
-    try:
-        user = user_service.find_user_by_email(db, email=user_data.email)
-        verification_code =  auth_service.generate_code()
-        user_service.update_user(db, user, user_data={
-            "verification_code": verification_code,
-            "verification_code_expires_at": datetime.utcnow() + timedelta(minutes=30)
-        })
-
-        # Send welcome email
-        EmailService.send_email(
-            to_email=user.email,
-            subject="Verify Your Account",
-            template_name="verify-account.html",
-            template_context={
-                "name": user.full_name,
-                "code": verification_code
-            }
-        )
-
-        return {"message": "Verification Code Sent Successfully"}
-    except Exception as e:
-        logger.error(f"Error: {str(e)}")
         raise
 
 @router.post("/login/email", response_model=auth_schema.Token)
 async def email_login(user_data: auth_schema.UserLogin, db: Session = Depends(get_db)):
     try:
         user = user_service.find_user_by_email(db, email=user_data.email)
-
-        if not user.is_verified:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Kindly verify account to continue"
-            )
 
         if not auth_service.verify_password(user_data.password, user.hashed_password):
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect password")
@@ -93,40 +45,7 @@ async def email_login(user_data: auth_schema.UserLogin, db: Session = Depends(ge
         logger.error(f"Error: {str(e)}")
         raise
 
-@router.post("/verify-email")
-async def email_login(user_data: auth_schema.VerifyEmail, db: Session = Depends(get_db)):
-    try:
 
-        user = user_service.find_user_by_email(db, email=user_data.email)
-
-        if user.is_verified:
-           raise HTTPException(
-               status_code=status.HTTP_400_BAD_REQUEST,
-               detail="User email already verified"
-           )
-
-        if user.verification_code != user_data.verification_code:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid verification code"
-            )
-
-        if user.verification_code_expires_at < datetime.utcnow():
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Verification code expired"
-            )
-
-        user_service.update_user(db, user, user_data={
-            "verification_code": None,
-            "verification_code_expires_at": None,
-            "is_verified": True
-        })
-
-        return {"message": "User Email Verified Successfully"}
-    except Exception as e:
-        logger.error(f"Error: {str(e)}")
-        raise
 
 @router.post("/login/google", response_model=auth_schema.Token)
 async def google_login(
