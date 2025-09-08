@@ -1,5 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
+from typing import List, Dict, Any
+
 from app.core.database import get_db
 from app.schemas.formula import Formula, FormulaCreate
 from app.services.formula import FormulaService
@@ -36,3 +38,24 @@ def read_formula(
     if not formula:
         raise HTTPException(status_code=404, detail="Formula not found")
     return formula
+
+@router.get("/suggest-substitutions", response_model=List[str])
+def suggest_substitutions(
+    ingredient_name: str = Query(..., description="Name of the ingredient to find substitutions for")
+):
+    """
+    Suggests alternative ingredients using AI.
+    """
+    suggestions = formula_service.suggest_ingredient_substitutions(ingredient_name)
+    return suggestions
+
+@router.get("/{formula_id}/nutrition-panel", response_model=Dict[str, Any])
+def get_nutrition_panel(
+    formula_id: int
+):
+    """
+    Generates a mock Nutrition Facts Panel for a given formula.
+    (No real calculations at MVP stage).
+    """
+    nutrition_panel = formula_service.generate_mock_nutrition_panel(formula_id)
+    return nutrition_panel
