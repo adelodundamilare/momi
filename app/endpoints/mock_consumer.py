@@ -5,12 +5,13 @@ from typing import List
 from app.core.database import get_db
 from app.schemas.mock_consumer import MockConsumer
 from app.services.mock_consumer import MockConsumerService
+from app.schemas.utility import APIResponse
 
 router = APIRouter()
 
 service = MockConsumerService()
 
-@router.post("/generate", status_code=201)
+@router.post("/generate", response_model=APIResponse, status_code=201)
 def generate_mock_consumers(
     *, 
     db: Session = Depends(get_db),
@@ -20,9 +21,9 @@ def generate_mock_consumers(
     Generate a specified number of mock consumers and save them to the database.
     """
     generated = service.generate_consumers(db, count=count)
-    return {"message": f"Successfully generated {len(generated)} mock consumers."}
+    return APIResponse(message=f"Successfully generated {len(generated)} mock consumers.")
 
-@router.get("/", response_model=List[MockConsumer])
+@router.get("/", response_model=APIResponse)
 def read_mock_consumers(
     db: Session = Depends(get_db),
     skip: int = 0,
@@ -32,4 +33,4 @@ def read_mock_consumers(
     Retrieve a list of mock consumers with pagination.
     """
     consumers = service.get_consumers(db, skip=skip, limit=limit)
-    return consumers
+    return APIResponse(message="Mock consumers retrieved successfully", data=consumers)

@@ -6,6 +6,7 @@ from app.core.database import get_db
 from app.schemas.consumer_insight import ConsumerInsight
 from app.services.consumer_insight import ConsumerInsightService
 from app.crud.social_post import social_post as social_post_crud
+from app.schemas.utility import APIResponse
 
 router = APIRouter()
 
@@ -14,7 +15,7 @@ service = ConsumerInsightService()
 def generate_signals_task(db: Session, social_post_ids: List[int]):
     service.generate_trend_signals(db, social_post_ids=social_post_ids)
 
-@router.post("/generate-signals", status_code=202)
+@router.post("/generate-signals", response_model=APIResponse, status_code=202)
 def generate_signals(
     *, 
     db: Session = Depends(get_db), 
@@ -30,9 +31,9 @@ def generate_signals(
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Social post with ID {post_id} not found.")
 
     background_tasks.add_task(generate_signals_task, db, social_post_ids)
-    return {"message": "Trend signal generation initiated in the background."}
+    return APIResponse(message="Trend signal generation initiated in the background.")
 
-@router.get("/signals", response_model=List[ConsumerInsight])
+@router.get("/signals", response_model=APIResponse)
 def get_signals(
     db: Session = Depends(get_db),
     skip: int = 0,
@@ -46,4 +47,4 @@ def get_signals(
     if insight_type:
         query = query.filter(service.crud.model.insight_type == insight_type)
     signals = query.offset(skip).limit(limit).all()
-    return signals
+    return APIResponse(message="Consumer insights retrieved successfully", data=signals)

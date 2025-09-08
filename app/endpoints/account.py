@@ -9,23 +9,24 @@ from app.utils.logger import setup_logger
 from app.models.user import User
 from app.services.email import EmailService
 from app.services.user import UserService
+from app.schemas.utility import APIResponse
 
 logger = setup_logger("account_api", "account.log")
 
 router = APIRouter()
 user_service = UserService()
 
-@router.get("/me", response_model=user_schema.UserResponse)
+@router.get("/me", response_model=APIResponse)
 async def get_profile(
     current_user: User = Depends(get_current_user)
 ):
     try:
-        return current_user
+        return APIResponse(message="User profile retrieved successfully", data=current_user)
     except Exception as e:
         logger.error(f"Error: {str(e)}")
         raise
 
-@router.put("/me", response_model=user_schema.UserResponse)
+@router.put("/me", response_model=APIResponse)
 async def update_profile(
     user_update: user_schema.UserUpdate,
     db: Session = Depends(get_db),
@@ -33,12 +34,12 @@ async def update_profile(
 ):
     try:
         updated_user = user_service.update_user(db, current_user, user_update)
-        return updated_user
+        return APIResponse(message="User profile updated successfully", data=updated_user)
     except Exception as e:
         logger.error(f"Error: {str(e)}")
         raise
 
-@router.post("/me/change-password")
+@router.post("/me/change-password", response_model=APIResponse)
 async def change_password(
     old_password: str,
     new_password: str,
@@ -57,12 +58,12 @@ async def change_password(
 
         # log out
         logger.info(f"Password changed for user: {current_user.email}")
-        return {"message": "Password updated successfully"}
+        return APIResponse(message="Password updated successfully")
     except Exception as e:
         logger.error(f"Error: {str(e)}")
         raise
 
-@router.delete("/me")
+@router.delete("/me", response_model=APIResponse)
 async def delete_account(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -70,7 +71,7 @@ async def delete_account(
     try:
         user_crud.delete(db, id=current_user.id)
         logger.info(f"Account deleted: {current_user.email}")
-        return {"message": "Account deleted successfully"}
+        return APIResponse(message="Account deleted successfully")
     except Exception as e:
         logger.error(f"Error: {str(e)}")
         raise

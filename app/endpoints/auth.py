@@ -12,6 +12,7 @@ from app.services.user import UserService
 from app.services.auth import AuthService
 from app.utils.deps import get_current_user
 from app.models.user import User
+from app.schemas.utility import APIResponse # Import the new schema
 
 logger = setup_logger("auth_api", "auth.log")
 
@@ -20,18 +21,18 @@ router = APIRouter()
 user_service = UserService()
 auth_service = AuthService()
 
-@router.post("/signup")
+@router.post("/signup", response_model=APIResponse)
 async def signup(user_data: auth_schema.UserCreate, db: Session = Depends(get_db)):
     try:
 
         user = user_service.create_user(db, user_data=user_data)
         
-        return {"message": "User created successfully"}
+        return APIResponse(message="User created successfully", data={"user_id": user.id, "email": user.email})
     except Exception as e:
         logger.error(f"Signup failed: {str(e)}")
         raise
 
-@router.post("/login/email", response_model=auth_schema.Token)
+@router.post("/login/email", response_model=APIResponse)
 async def email_login(user_data: auth_schema.UserLogin, db: Session = Depends(get_db)):
     try:
         user = user_service.find_user_by_email(db, email=user_data.email)
@@ -40,14 +41,14 @@ async def email_login(user_data: auth_schema.UserLogin, db: Session = Depends(ge
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect password")
 
         access_token = create_access_token(data={"sub": user.email})
-        return {"access_token": access_token, "token_type": "bearer"}
+        return APIResponse(message="Login successful", data={"access_token": access_token, "token_type": "bearer"})
     except Exception as e:
         logger.error(f"Error: {str(e)}")
         raise
 
 
 
-@router.post("/login/google", response_model=auth_schema.Token)
+@router.post("/login/google", response_model=APIResponse)
 async def google_login(
     token: str,
     db: Session = Depends(get_db)
@@ -73,12 +74,12 @@ async def google_login(
 
         access_token = create_access_token(data={"sub": user.email})
         logger.info(f"Google login successful: {user.email}")
-        return {"access_token": access_token, "token_type": "bearer"}
+        return APIResponse(message="Google login successful", data={"access_token": access_token, "token_type": "bearer"})
     except Exception as e:
         logger.error(f"Google login failed: {str(e)}")
         raise
 
-@router.post("/login/apple", response_model=auth_schema.Token)
+@router.post("/login/apple", response_model=APIResponse)
 async def apple_login(
     token: str,
     db: Session = Depends(get_db)
@@ -92,13 +93,13 @@ async def apple_login(
             )
 
         # Similar implementation as Google login
-        pass
+        return APIResponse(message="Apple login successful", data={"access_token": "mock_token", "token_type": "bearer"}) # Mock data for now
     except Exception as e:
         logger.error(f"Apple login failed: {str(e)}")
         raise
 
 
-@router.post("/request-forgot-password")
+@router.post("/request-forgot-password", response_model=APIResponse)
 async def request_forgot_password(reset_data: auth_schema.UserEmail, db: Session = Depends(get_db)):
     try:
         user = user_service.find_user_by_email(db, email=reset_data.email)
@@ -121,12 +122,12 @@ async def request_forgot_password(reset_data: auth_schema.UserEmail, db: Session
         )
 
         logger.info(f"Password reset code sent to: {user.email}")
-        return {"message": "Reset code sent to email"}
+        return APIResponse(message="Reset code sent to email")
     except Exception as e:
         logger.error(f"Password reset failed: {str(e)}")
         raise
 
-@router.post("/forgot-password")
+@router.post("/forgot-password", response_model=APIResponse)
 async def forgot_password(reset_data: auth_schema.PasswordResetVerify, db: Session = Depends(get_db)):
     try:
         user = user_service.find_user_by_email(db, email=reset_data.email)
@@ -141,16 +142,16 @@ async def forgot_password(reset_data: auth_schema.PasswordResetVerify, db: Sessi
 
         # invalidate token
 
-        return {"message": "Password Reset Successfully"}
+        return APIResponse(message="Password Reset Successfully")
     except Exception as e:
         logger.error(f"Error: {str(e)}")
         raise
 
-@router.post("/logout")
+@router.post("/logout", response_model=APIResponse)
 async def logout(current_user: User = Depends(get_current_user)):
    try:
     #    auth_service.invalidate_token(current_user.id)
-       return {"message": "Logged out successfully"}
+       return APIResponse(message="Logged out successfully")
    except Exception as e:
         logger.error(f"Error: {str(e)}")
         raise
