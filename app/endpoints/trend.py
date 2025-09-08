@@ -10,8 +10,8 @@ router = APIRouter()
 
 trend_service = TrendService()
 
-def scrape_task(db: Session, url: str, category: str | None):
-    trend_service.scrape_and_save(db, url=url, category=category)
+def scrape_task(db: Session, url: str, category: str | None, tags: List[str] | None):
+    trend_service.scrape_and_save(db, url=url, category=category, tags=tags)
 
 @router.post("/scrape")
 def scrape_url(
@@ -23,7 +23,7 @@ def scrape_url(
     """
     Initiate scraping of a URL in the background.
     """
-    background_tasks.add_task(scrape_task, db, str(request.url), request.category)
+    background_tasks.add_task(scrape_task, db, str(request.url), request.category, request.tags)
     return {"message": "Scraping has been initiated in the background."}
 
 @router.get("/", response_model=List[TrendData])

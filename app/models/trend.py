@@ -11,3 +11,4 @@ class TrendData(Base):
     content = Column(Text, nullable=True)
     category = Column(String, index=True, nullable=True)
     scraped_at = Column(DateTime(timezone=True), server_default=func.now())
+    tags = Column(JSON, nullable=True)

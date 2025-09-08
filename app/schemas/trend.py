@@ -1,11 +1,12 @@
 from pydantic import BaseModel, HttpUrl
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 
 # Shared properties
 class TrendDataBase(BaseModel):
     source_url: HttpUrl
     category: Optional[str] = None
+    tags: Optional[List[str]] = None
 
 # Properties to receive on item creation
 class TrendDataCreate(TrendDataBase):
@@ -16,6 +17,7 @@ class TrendDataCreate(TrendDataBase):
 class ScrapeRequest(BaseModel):
     url: HttpUrl
     category: Optional[str] = None
+    tags: Optional[List[str]] = None
 
 # Properties shared by models stored in DB
 class TrendDataInDBBase(TrendDataBase):

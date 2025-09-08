@@ -1,12 +1,13 @@
 from sqlalchemy.orm import Session
 import requests
 from bs4 import BeautifulSoup
+from typing import List
 
 from app.crud.trend import trend as trend_crud
 from app.schemas.trend import TrendDataCreate
 
 class TrendService:
-    def scrape_and_save(self, db: Session, *, url: str, category: str | None):
+    def scrape_and_save(self, db: Session, *, url: str, category: str | None, tags: List[str] | None):
         """
         Scrapes a URL, extracts title and content, and saves to the database.
         This function is intended to be run in a background task.
@@ -19,6 +20,15 @@ class TrendService:
             response.raise_for_status() # Raise an exception for bad status codes
 
             soup = BeautifulSoup(response.content, 'html.parser')
+
+            # --- Placeholder for site-specific scraping logic ---
+            # For example, if url is from Food Dive, you might have specific selectors:
+            # if "fooddive.com" in url:
+            #     title = soup.find("h1", class_="headline").text.strip()
+            #     content_div = soup.find("div", class_="article-body")
+            #     content = content_div.get_text(separator="\n", strip=True)
+            # else:
+            # --- End Placeholder ---
 
             # A simple (naive) approach to get title and content
             title = soup.title.string if soup.title else 'No Title Found'
@@ -40,7 +50,8 @@ class TrendService:
                 source_url=url,
                 title=title,
                 content=content,
-                category=category
+                category=category,
+                tags=tags
             )
             trend_crud.create(db, obj_in=trend_data)
             print(f"Successfully scraped and saved: {url}")
