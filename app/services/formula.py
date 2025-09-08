@@ -4,14 +4,14 @@ from app.crud.ingredient import ingredient as ingredient_crud
 from app.schemas.formula import FormulaCreate
 from app.models.user import User
 from fastapi import HTTPException, status
-import openai
 import json
 from typing import List, Dict, Any
 
+from app.services.ai_provider import AIProvider, OpenAIProvider # Import the new provider
+
 class FormulaService:
-    def __init__(self):
-        self.client = openai.OpenAI(api_key=settings.OPENAI_API_KEY)
-        self.model = "gpt-4-turbo" # Model that supports JSON mode
+    def __init__(self, ai_provider: AIProvider = OpenAIProvider()): # Inject the provider
+        self.ai_provider = ai_provider
 
     def create_formula(self, db: Session, *, formula_data: FormulaCreate, current_user: User):
         # Validate that all ingredients exist before creating the formula
@@ -29,37 +29,7 @@ class FormulaService:
         return formula_crud.get(db, id=id)
 
     def suggest_ingredient_substitutions(self, ingredient_name: str) -> List[str]:
-        system_prompt = (
-            "You are an expert in food and beverage ingredient science. "
-            "For the given ingredient, suggest 3-5 common and functionally similar alternatives "
-            "that could be used in food and beverage products. "
-            "Respond with a JSON array of strings, where each string is an alternative ingredient name."
-        )
-        user_prompt = f"Suggest alternatives for: {ingredient_name}"
-
-        try:
-            response = self.client.chat.completions.create(
-                model=self.model,
-                response_format={"type": "json_object"},
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt}
-                ]
-            )
-            
-            # Assuming the AI returns a JSON object with a key like 'alternatives' containing the list
-            response_content = json.loads(response.choices[0].message.content)
-            alternatives = response_content.get("alternatives", [])
-
-            if not isinstance(alternatives, list):
-                print(f"AI did not return a list of alternatives: {alternatives}")
-                return []
-
-            return alternatives
-
-        except Exception as e:
-            print(f"Error suggesting substitutions for {ingredient_name}: {e}")
-            return []
+        return self.ai_provider.generate_ingredient_substitutions(ingredient_name)
 
     def generate_mock_nutrition_panel(self, formula_id: int) -> Dict[str, Any]:
         """

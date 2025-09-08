@@ -1,16 +1,13 @@
 from sqlalchemy.orm import Session
-import openai
-import json
 
-from app.core.config import settings
 from app.crud.trend import trend as trend_crud
 from app.crud.ai_insight import insight as insight_crud
 from app.schemas.ai_insight import InsightCreate
+from app.services.ai_provider import AIProvider, OpenAIProvider # Import the new provider
 
 class AIInsightService:
-    def __init__(self):
-        self.client = openai.OpenAI(api_key=settings.OPENAI_API_KEY)
-        self.model = "gpt-4-turbo" # Specify the model that supports JSON mode
+    def __init__(self, ai_provider: AIProvider = OpenAIProvider()): # Inject the provider
+        self.ai_provider = ai_provider
 
     def generate_and_save_insights(self, db: Session, trend_id: int):
         """
@@ -22,23 +19,8 @@ class AIInsightService:
             print(f"Trend with id {trend_id} not found or has no content.")
             return
 
-        system_prompt = (
-            "You are an expert analyst. Analyze the following article and provide a concise, "
-            "one-paragraph summary and a sentiment analysis (either Positive, Negative, or Neutral). "
-            "Respond with a JSON object containing two keys: 'summary' and 'sentiment'."
-        )
-
         try:
-            response = self.client.chat.completions.create(
-                model=self.model,
-                response_format={"type": "json_object"},
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": trend.content}
-                ]
-            )
-
-            insights = json.loads(response.choices[0].message.content)
+            insights = self.ai_provider.generate_summary_and_sentiment(trend.content)
             summary = insights.get("summary", "No summary generated.")
             sentiment = insights.get("sentiment", "No sentiment generated.")
 
@@ -47,7 +29,7 @@ class AIInsightService:
                 trend_data_id=trend_id,
                 insight_type="summary",
                 content=summary,
-                model_version=self.model
+                model_version=self.ai_provider.model # Use model from provider
             ))
 
             # Save the sentiment
@@ -55,7 +37,7 @@ class AIInsightService:
                 trend_data_id=trend_id,
                 insight_type="sentiment",
                 content=sentiment,
-                model_version=self.model
+                model_version=self.ai_provider.model # Use model from provider
             ))
 
             print(f"Successfully generated and saved insights for trend {trend_id}")

@@ -1,15 +1,15 @@
 from typing import List, Iterator
-import openai
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.schemas.chat import Message
 from app.crud.trend import trend as trend_crud
 from app.crud.ingredient import ingredient as ingredient_crud
+from app.services.ai_provider import AIProvider, OpenAIProvider # Import the new provider
 
 class ChatService:
-    def __init__(self):
-        self.client = openai.OpenAI(api_key=settings.OPENAI_API_KEY)
+    def __init__(self, ai_provider: AIProvider = OpenAIProvider()): # Inject the provider
+        self.ai_provider = ai_provider
 
     def _retrieve_context(self, query: str, db: Session) -> str:
         context_parts = []
@@ -32,7 +32,7 @@ class ChatService:
 
     def send_streaming_message(self, messages: List[Message], db: Session) -> Iterator[str]:
         """
-        Calls the OpenAI API in streaming mode and yields the content chunks.
+        Calls the AI provider in streaming mode and yields the content chunks.
         """
         latest_user_message = messages[-1].content if messages and messages[-1].role == "user" else ""
         context = self._retrieve_context(latest_user_message, db)
@@ -46,19 +46,6 @@ class ChatService:
         )
 
         # Prepend the system prompt to the messages list
-        messages_for_openai = [Message(role="system", content=system_prompt)] + messages
-        message_dicts = [msg.dict() for msg in messages_for_openai]
-
-        try:
-            stream = self.client.chat.completions.create(
-                model="gpt-4", # Or another model like "gpt-3.5-turbo"
-                messages=message_dicts,
-                stream=True,
-            )
-            for chunk in stream:
-                content = chunk.choices[0].delta.content
-                if content:
-                    yield content
-        except Exception as e:
-            print(f"OpenAI API error: {e}")
-            yield "Error: Could not connect to the AI service."
+        messages_for_ai = [Message(role="system", content=system_prompt)] + messages
+        
+        return self.ai_provider.generate_chat_completion(messages_for_ai)
