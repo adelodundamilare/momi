@@ -94,11 +94,11 @@ class OpenAIProvider(AIProvider):
 
     def generate_trend_signals(self, combined_content: str) -> List[str]:
         system_prompt = (
-            "You are an expert in food and beverage market trends. Analyze the following social media posts "
-            "and identify clear trend signals. A trend signal is a specific ingredient, product type, or concept "
-            "that is showing a clear upward (↑) or downward (↓) trend. "
-            "Respond with a JSON array of strings, where each string is a trend signal in the format '[Item] [↑/↓]'. "
-            "Example: ["Moringa ↑", "Spirulina ↓", "Kombucha ↑"]."
+            """You are an expert in food and beverage market trends. Analyze the following social media posts 
+            and identify clear trend signals. A trend signal is a specific ingredient, product type, or concept 
+            that is showing a clear upward (^) or downward (v) trend. 
+            Respond with a JSON array of strings, where each string is a trend signal in the format '[Item] [^/v]'. 
+            Example: ['Moringa ^', 'Spirulina v', 'Kombucha ^']."""
         )
         try:
             response = self.client.chat.completions.create(
