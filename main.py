@@ -2,7 +2,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
-from app.endpoints import auth, account, utility
+from app.endpoints import auth, account, utility, ingredient
 from fastapi.exceptions import RequestValidationError
 from app.middleware.exceptions import global_exception_handler
 
@@ -29,6 +29,7 @@ app.add_exception_handler(RequestValidationError, global_exception_handler)
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(account.router, prefix="/account", tags=["account"])
 app.include_router(utility.router, prefix="/utility", tags=["utility"])
+app.include_router(ingredient.router, prefix="/ingredients", tags=["ingredients"])
 
 if __name__ == "__main__":
     import uvicorn
