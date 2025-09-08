@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional, Any
+from typing import Optional
 
 # Shared properties
 class IngredientBase(BaseModel):
@@ -7,7 +7,9 @@ class IngredientBase(BaseModel):
     description: Optional[str] = None
     cost: Optional[float] = None
     vendor: Optional[str] = None
-    properties: Optional[dict[str, Any]] = None
+    benefits: Optional[str] = None
+    claims: Optional[str] = None
+    regulatory_notes: Optional[str] = None
 
 # Properties to receive on item creation
 class IngredientCreate(IngredientBase):
