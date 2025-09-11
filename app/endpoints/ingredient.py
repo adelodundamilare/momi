@@ -53,20 +53,16 @@ def read_ingredients(
     ingredients_response = [Ingredient.from_orm(ingredient) for ingredient in ingredients]
     return APIResponse(message="Ingredients retrieved successfully", data=ingredients_response)
 
-@router.get("/{identifier}/price-chart", response_model=APIResponse)
+@router.get("/{slug}/price-chart", response_model=APIResponse)
 def get_ingredient_price_chart(
-    identifier: Union[int, str],
+    slug: str,
     db: Session = Depends(get_db),
     days: int = Query(30, ge=7, le=365, description="Number of days for price history")
 ):
     """
     Generates random price movement data for an ingredient for charting.
     """
-    ingredient = None
-    if isinstance(identifier, int):
-        ingredient = ingredient_service.get_ingredient(db, id=identifier)
-    elif isinstance(identifier, str):
-        ingredient = ingredient_service.get_by_slug(db, slug=identifier)
+    ingredient = ingredient_service.get_by_slug(db, slug=slug)
 
     if not ingredient:
         raise HTTPException(status_code=404, detail="Ingredient not found")
