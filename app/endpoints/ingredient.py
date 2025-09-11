@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from typing import List, Optional
+from typing import List, Optional, Union
 
 from app.core.database import get_db
 from app.schemas.ingredient import Ingredient, IngredientCreate
@@ -19,8 +19,8 @@ ingredient_service = IngredientService()
 
 @router.post("/", response_model=APIResponse)
 def create_ingredient(
-    *, 
-    db: Session = Depends(get_db), 
+    *,
+    db: Session = Depends(get_db),
     ingredient_in: IngredientCreate
 ):
     """
