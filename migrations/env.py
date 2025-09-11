@@ -21,6 +21,7 @@ from app.models.news_feed import NewsFeed
 from app.models.chat import ChatHistory
 from app.models.supplier import Supplier
 from app.models.bookmarked_supplier import BookmarkedSupplier
+from app.models.bookmarked_news import BookmarkedNews
 
 # Alembic Config object, which provides access to the .ini file values
 config = context.config

@@ -9,4 +9,6 @@ class NewsFeed(Base):
     title = Column(String, nullable=False)
     source = Column(String, nullable=False)
     url = Column(String, nullable=False)
+    image = Column(String, nullable=True)
+    views = Column(Integer, default=0)
     published_at = Column(DateTime(timezone=True), server_default=func.now())
