@@ -9,8 +9,7 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape, Template, T
 
 from app.core.config import settings
 
-template_folder = "app/templates"
-templates = Environment(loader=FileSystemLoader(template_folder))
+
 
 class EmailService:
     _template_env = None
@@ -84,7 +83,8 @@ class EmailService:
 
             # Render HTML content
             try:
-                template = templates.get_template(template_name)
+                template_env = cls._get_template_env()
+                template = template_env.get_template(template_name)
                 html_content = template.render(template_context)
             except TemplateNotFound:
                 logging.error(f"Template '{template_name}' not found.")

@@ -9,6 +9,8 @@ from app.schemas.utility import APIResponse
 from app.utils.deps import get_current_user
 from app.models.user import User
 from app.models.bookmarked_supplier import BookmarkedSupplier
+from app.crud.bookmarked_supplier import bookmarked_supplier
+from app.schemas.bookmarked_supplier import BookmarkedSupplierCreate
 
 router = APIRouter()
 
