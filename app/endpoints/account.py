@@ -21,7 +21,8 @@ async def get_profile(
     current_user: User = Depends(get_current_user)
 ):
     try:
-        return APIResponse(message="User profile retrieved successfully", data=current_user)
+        user_response = user_schema.UserResponse.model_validate(current_user)
+        return APIResponse(message="User profile retrieved successfully", data=user_response)
     except Exception as e:
         logger.error(f"Error: {str(e)}")
         raise

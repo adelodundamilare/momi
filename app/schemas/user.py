@@ -25,7 +25,6 @@ class UserResponse(BaseModel):
     email: EmailStr
     subscription_plan: SubscriptionPlan
     auth_provider: str
-    is_verified: bool
 
     class Config:
         from_attributes = True
