@@ -6,6 +6,7 @@ from app.core.database import get_db
 from app.schemas.ai_insight import Insight
 from app.services.ai_insight import AIInsightService
 from app.crud.trend import trend as trend_crud
+from app.crud.ai_insight import insight as insight_crud
 from app.schemas.utility import APIResponse
 
 router = APIRouter()
@@ -43,4 +44,5 @@ def read_insights_for_trend(
     """
     # A more specific CRUD method could be created for this, but for now a simple query suffices.
     insights = db.query(insight_crud.model).filter(insight_crud.model.trend_data_id == trend_id).all()
-    return APIResponse(message="Insights retrieved successfully", data=insights)
+    insights_response = [Insight.from_orm(insight) for insight in insights]
+    return APIResponse(message="Insights retrieved successfully", data=insights_response)

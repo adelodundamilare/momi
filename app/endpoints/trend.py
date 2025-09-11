@@ -35,4 +35,5 @@ def read_trends(
     Retrieve a list of scraped trends.
     """
     trends = trend_service.get_trends(db)
-    return APIResponse(message="Scraped trends retrieved successfully", data=trends)
+    trends_response = [TrendData.from_orm(trend) for trend in trends]
+    return APIResponse(message="Scraped trends retrieved successfully", data=trends_response)

@@ -47,4 +47,5 @@ def get_signals(
     if insight_type:
         query = query.filter(service.crud.model.insight_type == insight_type)
     signals = query.offset(skip).limit(limit).all()
-    return APIResponse(message="Consumer insights retrieved successfully", data=signals)
+    signals_response = [ConsumerInsight.from_orm(signal) for signal in signals]
+    return APIResponse(message="Consumer insights retrieved successfully", data=signals_response)

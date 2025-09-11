@@ -33,4 +33,5 @@ def read_social_posts(
     Retrieve a list of mock social posts with pagination.
     """
     posts = service.get_social_posts(db, skip=skip, limit=limit)
-    return APIResponse(message="Social posts retrieved successfully", data=posts)
+    posts_response = [SocialPost.from_orm(post) for post in posts]
+    return APIResponse(message="Social posts retrieved successfully", data=posts_response)

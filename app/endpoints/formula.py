@@ -24,7 +24,8 @@ def create_formula(
     Create new formula. Requires authentication.
     """
     formula = formula_service.create_formula(db, formula_data=formula_in, current_user=current_user)
-    return APIResponse(message="Formula created successfully", data=formula)
+    formula_response = Formula.from_orm(formula)
+    return APIResponse(message="Formula created successfully", data=formula_response)
 
 @router.get("/{id}", response_model=APIResponse)
 def read_formula(
@@ -38,7 +39,8 @@ def read_formula(
     formula = formula_service.get_formula(db, id=id)
     if not formula:
         raise HTTPException(status_code=404, detail="Formula not found")
-    return APIResponse(message="Formula retrieved successfully", data=formula)
+    formula_response = Formula.from_orm(formula)
+    return APIResponse(message="Formula retrieved successfully", data=formula_response)
 
 @router.get("/suggest-substitutions", response_model=APIResponse)
 def suggest_substitutions(

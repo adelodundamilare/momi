@@ -21,7 +21,8 @@ def create_ingredient(
     Create new ingredient.
     """
     ingredient = ingredient_service.create_ingredient(db, ingredient_data=ingredient_in)
-    return APIResponse(message="Ingredient created successfully", data=ingredient)
+    ingredient_response = Ingredient.from_orm(ingredient)
+    return APIResponse(message="Ingredient created successfully", data=ingredient_response)
 
 @router.get("/", response_model=APIResponse)
 def read_ingredients(
@@ -34,7 +35,8 @@ def read_ingredients(
     Retrieve a list of ingredients with optional search and pagination.
     """
     ingredients = ingredient_service.get_ingredients(db, skip=skip, limit=limit, search=search)
-    return APIResponse(message="Ingredients retrieved successfully", data=ingredients)
+    ingredients_response = [Ingredient.from_orm(ingredient) for ingredient in ingredients]
+    return APIResponse(message="Ingredients retrieved successfully", data=ingredients_response)
 
 @router.get("/{id}", response_model=APIResponse)
 def read_ingredient(
@@ -48,7 +50,8 @@ def read_ingredient(
     ingredient = ingredient_service.get_ingredient(db, id=id)
     if not ingredient:
         raise HTTPException(status_code=404, detail="Ingredient not found")
-    return APIResponse(message="Ingredient retrieved successfully", data=ingredient)
+    ingredient_response = Ingredient.from_orm(ingredient)
+    return APIResponse(message="Ingredient retrieved successfully", data=ingredient_response)
 
 @router.post("/seed", response_model=APIResponse, status_code=201)
 def seed_initial_ingredients(

@@ -33,4 +33,5 @@ def read_mock_consumers(
     Retrieve a list of mock consumers with pagination.
     """
     consumers = service.get_consumers(db, skip=skip, limit=limit)
-    return APIResponse(message="Mock consumers retrieved successfully", data=consumers)
+    consumers_response = [MockConsumer.from_orm(consumer) for consumer in consumers]
+    return APIResponse(message="Mock consumers retrieved successfully", data=consumers_response)
