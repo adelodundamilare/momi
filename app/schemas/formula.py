@@ -14,7 +14,7 @@ class FormulaIngredient(FormulaIngredientBase):
     ingredient: Ingredient
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 # --- Schemas for the main Formula model ---
 
@@ -38,7 +38,7 @@ class FormulaInDBBase(FormulaBase):
     author_id: int
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 # Properties to return to client
 class Formula(FormulaInDBBase):
