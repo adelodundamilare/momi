@@ -23,6 +23,10 @@ class AIProvider(ABC):
     def generate_trend_signals(self, combined_content: str) -> List[str]:
         pass
 
+    @abstractmethod
+    def generate_ingredient_enrichment(self, ingredient_name: str) -> Dict[str, Any]:
+        pass
+
 class OpenAIProvider(AIProvider):
     def __init__(self):
         self.client = openai.OpenAI(api_key=settings.OPENAI_API_KEY)
@@ -115,3 +119,28 @@ class OpenAIProvider(AIProvider):
         except Exception as e:
             print(f"An error occurred while generating trend signals: {e}")
             return []
+
+    def generate_ingredient_enrichment(self, ingredient_name: str) -> Dict[str, Any]:
+        system_prompt = (
+            "You are an expert in food and beverage ingredients. For the given ingredient, "
+            "generate a concise description, 3-5 key benefits, 2-3 common claims, "
+            "1-2 regulatory notes, its primary function in food products, "
+            "an estimated typical weight (e.g., 100), unit (e.g., 'grams', 'ml', 'pieces'), "
+            "an estimated typical cost (e.g., 5.99), and common allergies associated with it (as a comma-separated string). "
+            "Respond with a JSON object with keys: 'description', 'benefits', 'claims', 'regulatory_notes', 'function', 'weight', 'unit', 'cost', 'allergies'."
+        )
+        user_prompt = f"Enrich data for ingredient: {ingredient_name}"
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model,
+                response_format={"type": "json_object"},
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ]
+            )
+            response_content = json.loads(response.choices[0].message.content)
+            return response_content
+        except Exception as e:
+            print(f"Error enriching ingredient {ingredient_name}: {e}")
+            return {}

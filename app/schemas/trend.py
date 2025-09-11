@@ -9,6 +9,7 @@ class TrendDataBase(BaseModel):
     tags: Optional[List[str]] = None
     socials: Optional[Dict[str, int]] = None
     image: Optional[str] = None
+    ingredient_id: Optional[int] = None
 
 # Properties to receive on item creation
 class TrendDataCreate(TrendDataBase):

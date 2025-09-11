@@ -4,6 +4,7 @@ from typing import Optional
 # Shared properties
 class IngredientBase(BaseModel):
     name: str
+    slug: Optional[str] = None
     description: Optional[str] = None
     cost: Optional[float] = None
     vendor: Optional[str] = None

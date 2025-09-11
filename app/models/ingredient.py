@@ -6,6 +6,7 @@ class Ingredient(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True, unique=True, nullable=False)
+    slug = Column(String, unique=True, index=True, nullable=False)
     description = Column(Text, nullable=True)
     cost = Column(Float, nullable=True)
     vendor = Column(String, nullable=True)

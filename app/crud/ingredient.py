@@ -6,8 +6,8 @@ from app.models.ingredient import Ingredient
 from app.schemas.ingredient import IngredientCreate, IngredientUpdate
 
 class CRUDIngredient(CRUDBase[Ingredient, IngredientCreate, IngredientUpdate]):
-    def get_by_name(self, db: Session, *, name: str) -> Ingredient | None:
-        return db.query(self.model).filter(self.model.name.ilike(name)).first()
+    def get_by_slug(self, db: Session, *, slug: str) -> Ingredient | None:
+        return db.query(self.model).filter(self.model.slug == slug).first()
 
     def get_multi(self, db: Session, *, skip: int = 0, limit: int = 100, search: Optional[str] = None) -> List[Ingredient]:
         query = db.query(self.model)

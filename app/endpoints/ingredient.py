@@ -65,12 +65,4 @@ def read_ingredient(
     ingredient_response = Ingredient.from_orm(ingredient)
     return APIResponse(message="Ingredient retrieved successfully", data=ingredient_response)
 
-@router.post("/seed", response_model=APIResponse, status_code=201)
-def seed_initial_ingredients(
-    db: Session = Depends(get_db)
-):
-    """
-    Seed initial ingredient data into the database.
-    """
-    created_count = ingredient_service.seed_ingredients(db)
-    return APIResponse(message=f"Successfully seeded {created_count} new ingredients.")
+

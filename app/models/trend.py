@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Text, JSON
+from sqlalchemy import Column, Integer, String, DateTime, Text, JSON, ForeignKey
 from sqlalchemy.sql import func
 from app.core.database import Base
 
@@ -14,3 +14,4 @@ class TrendData(Base):
     tags = Column(JSON, nullable=True)
     socials = Column(JSON, nullable=True)
     image = Column(String, nullable=True)
+    ingredient_id = Column(Integer, ForeignKey('ingredients.id'), nullable=True)
