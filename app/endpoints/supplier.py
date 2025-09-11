@@ -41,7 +41,8 @@ def read_suppliers(
     if us_approved is not None:
         query = query.filter(supplier.model.us_approved_status == us_approved)
     suppliers = query.offset(skip).limit(limit).all()
-    return APIResponse(message="Suppliers retrieved successfully", data=suppliers)
+    suppliers_response = [Supplier.from_orm(s) for s in suppliers]
+    return APIResponse(message="Suppliers retrieved successfully", data=suppliers_response)
 
 @router.post("/{supplier_id}/bookmark", response_model=APIResponse)
 def bookmark_supplier(
@@ -52,7 +53,7 @@ def bookmark_supplier(
     """
     Bookmark a supplier for the current user.
     """
-    obj_in = {"user_id": current_user.id, "supplier_id": supplier_id}
+    obj_in = BookmarkedSupplierCreate(user_id=current_user.id, supplier_id=supplier_id)
     bookmarked_supplier.create(db, obj_in=obj_in)
     return APIResponse(message="Supplier bookmarked successfully")
 
@@ -65,4 +66,5 @@ def get_bookmarked_suppliers(
     Retrieve bookmarked suppliers for the current user.
     """
     bookmarked = db.query(Supplier).join(BookmarkedSupplier, BookmarkedSupplier.supplier_id == Supplier.id).filter(BookmarkedSupplier.user_id == current_user.id).all()
-    return APIResponse(message="Bookmarked suppliers retrieved successfully", data=bookmarked)
+    bookmarked_response = [Supplier.from_orm(b) for b in bookmarked]
+    return APIResponse(message="Bookmarked suppliers retrieved successfully", data=bookmarked_response)

@@ -11,6 +11,7 @@ class ChatRequest(BaseModel):
     agent_type: str = "innovative" # "innovative" or "compliance"
 
 class ChatHistoryBase(BaseModel):
+    user_id: int
     messages: List[Message]
 
 class ChatHistoryCreate(ChatHistoryBase):

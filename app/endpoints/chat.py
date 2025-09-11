@@ -40,16 +40,7 @@ def get_chat_history(
     Retrieve chat history for the current user.
     """
     history = db.query(ChatHistory).filter(ChatHistory.user_id == current_user.id).all()
-    return APIResponse(message="Chat history retrieved successfully", data=history)
+    history_response = [ChatHistory.from_orm(h) for h in history]
+    return APIResponse(message="Chat history retrieved successfully", data=history_response)
 
-@router.post("/save", response_model=APIResponse)
-def save_chat_history(
-    request: ChatRequest,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """
-    Save a chat history.
-    """
-    chat_history.create(db, obj_in=ChatHistoryCreate(user_id=current_user.id, messages=request.messages))
-    return APIResponse(message="Chat history saved successfully")
+

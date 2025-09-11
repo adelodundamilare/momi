@@ -17,6 +17,7 @@ def read_news_feed(
 ):
     """
     Retrieve a list of news feed items with pagination.
-    """"
+    """
     news_feed_items = news_feed.get_multi(db, skip=skip, limit=limit)
-    return APIResponse(message="News feed retrieved successfully", data=news_feed_items)
+    news_feed_response = [NewsFeed.from_orm(item) for item in news_feed_items]
+    return APIResponse(message="News feed retrieved successfully", data=news_feed_response)

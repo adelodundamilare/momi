@@ -17,6 +17,10 @@ from app.models.ingredient import Ingredient
 from app.models.mock_consumer import MockConsumer
 from app.models.social_post import SocialPost
 from app.models.trend import TrendData
+from app.models.news_feed import NewsFeed
+from app.models.chat import ChatHistory
+from app.models.supplier import Supplier
+from app.models.bookmarked_supplier import BookmarkedSupplier
 
 # Alembic Config object, which provides access to the .ini file values
 config = context.config
