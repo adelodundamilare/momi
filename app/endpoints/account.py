@@ -35,7 +35,8 @@ async def update_profile(
 ):
     try:
         updated_user = user_service.update_user(db, current_user, user_update)
-        return APIResponse(message="User profile updated successfully", data=updated_user)
+        user_response = user_schema.UserResponse.model_validate(updated_user)
+        return APIResponse(message="User profile updated successfully", data=user_response)
     except Exception as e:
         logger.error(f"Error: {str(e)}")
         raise
