@@ -14,7 +14,7 @@ from app.models.ai_insight import Insight
 from app.models.consumer_insight import ConsumerInsight
 from app.models.formula import Formula
 from app.models.ingredient import Ingredient
-from app.models.mock_consumer import MockConsumer
+
 from app.models.social_post import SocialPost
 from app.models.trend import TrendData
 from app.models.news_feed import NewsFeed
