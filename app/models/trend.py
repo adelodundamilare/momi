@@ -12,3 +12,5 @@ class TrendData(Base):
     category = Column(String, index=True, nullable=True)
     scraped_at = Column(DateTime(timezone=True), server_default=func.now())
     tags = Column(JSON, nullable=True)
+    socials = Column(JSON, nullable=True)
+    image = Column(String, nullable=True)

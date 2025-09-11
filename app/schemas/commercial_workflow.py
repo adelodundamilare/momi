@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
 from datetime import date, timedelta
 
 class TimelineStep(BaseModel):
@@ -17,5 +17,9 @@ class CommercialWorkflowRequest(BaseModel):
     supplier_region: str # e.g., "North America", "Europe", "Asia"
 
 class CommercialWorkflowResponse(BaseModel):
+    estimated_launch: date
+    timeline_summary: str
+    optimized_timeline: List[TimelineStep]
+    ai_risk_callout: str
     timeline: List[TimelineStep]
     co_manufacturers: List[CoManufacturer]

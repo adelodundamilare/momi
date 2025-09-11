@@ -42,7 +42,17 @@ class CommercialWorkflowService:
         num_manufacturers = random.randint(1, 2)
         selected_co_manufacturers = random.sample(all_co_manufacturers, num_manufacturers)
 
+        # Mock data for new fields
+        estimated_launch = timeline[-1].end_date
+        timeline_summary = f"The project is estimated to be completed by {estimated_launch}."
+        optimized_timeline = timeline # In a real scenario, this would be different
+        ai_risk_callout = "Potential supply chain disruption due to high demand for a key ingredient."
+
         return CommercialWorkflowResponse(
+            estimated_launch=estimated_launch,
+            timeline_summary=timeline_summary,
+            optimized_timeline=optimized_timeline,
+            ai_risk_callout=ai_risk_callout,
             timeline=timeline,
             co_manufacturers=selected_co_manufacturers
         )

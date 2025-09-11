@@ -1,5 +1,5 @@
 from pydantic import BaseModel, HttpUrl
-from typing import Optional, List
+from typing import Optional, List, Dict
 from datetime import datetime
 
 # Shared properties
@@ -7,6 +7,8 @@ class TrendDataBase(BaseModel):
     source_url: HttpUrl
     category: Optional[str] = None
     tags: Optional[List[str]] = None
+    socials: Optional[Dict[str, int]] = None
+    image: Optional[str] = None
 
 # Properties to receive on item creation
 class TrendDataCreate(TrendDataBase):

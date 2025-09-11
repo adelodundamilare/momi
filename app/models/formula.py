@@ -17,6 +17,7 @@ class Formula(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True, nullable=False)
     description = Column(String, nullable=True)
+    product_concept = Column(String, nullable=True)
     author_id = Column(Integer, ForeignKey("users.id"))
 
     author = relationship("User")

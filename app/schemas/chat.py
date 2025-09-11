@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import List
+from datetime import datetime
 
 class Message(BaseModel):
     role: str # "user", "assistant", or "system"
@@ -7,3 +8,21 @@ class Message(BaseModel):
 
 class ChatRequest(BaseModel):
     messages: List[Message]
+    agent_type: str = "innovative" # "innovative" or "compliance"
+
+class ChatHistoryBase(BaseModel):
+    messages: List[Message]
+
+class ChatHistoryCreate(ChatHistoryBase):
+    pass
+
+class ChatHistoryUpdate(ChatHistoryBase):
+    pass
+
+class ChatHistory(ChatHistoryBase):
+    id: int
+    user_id: int
+    created_at: datetime
+
+    class Config:
+        orm_mode = True

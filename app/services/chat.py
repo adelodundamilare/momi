@@ -30,20 +30,35 @@ class ChatService:
 
         return "\n".join(context_parts)
 
-    def send_streaming_message(self, messages: List[Message], db: Session) -> Iterator[str]:
+    def send_streaming_message(self, messages: List[Message], db: Session, agent_type: str = "innovative") -> Iterator[str]:
         """
         Calls the AI provider in streaming mode and yields the content chunks.
         """
         latest_user_message = messages[-1].content if messages and messages[-1].role == "user" else ""
         context = self._retrieve_context(latest_user_message, db)
 
-        system_prompt = (
-            "You are a food innovation expert. Your goal is to provide helpful and concise answers "
-            "based on the provided context. If the context does not contain enough information, "
-            "state that you don't have enough information to answer the question. "
-            "Do not make up information. "
-            "Context:\n" + context
-        )
+        if agent_type == "innovative":
+            system_prompt = (
+                "You are a food innovation expert. Your goal is to provide helpful and concise answers "
+                "based on the provided context. If the context does not contain enough information, "
+                "state that you don't have enough information to answer the question. "
+                "Do not make up information. "
+                "Context:\n" + context
+            )
+        elif agent_type == "compliance":
+            system_prompt = (
+                "You are a food compliance expert. Your goal is to provide helpful and concise answers "
+                "based on the provided context, focusing on regulatory and safety aspects. "
+                "If the context does not contain enough information, "
+                "state that you don't have enough information to answer the question. "
+                "Do not make up information. "
+                "Context:\n" + context
+            )
+        else:
+            system_prompt = (
+                "You are a helpful assistant. "
+                "Context:\n" + context
+            )
 
         # Prepend the system prompt to the messages list
         messages_for_ai = [Message(role="system", content=system_prompt)] + messages

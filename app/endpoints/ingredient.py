@@ -4,8 +4,11 @@ from typing import List, Optional
 
 from app.core.database import get_db
 from app.schemas.ingredient import Ingredient, IngredientCreate
+from app.models.ingredient import Ingredient as IngredientModel
 from app.services.ingredient import IngredientService
 from app.schemas.utility import APIResponse
+
+from app.models.trend import TrendData
 
 router = APIRouter()
 
@@ -29,12 +32,21 @@ def read_ingredients(
     db: Session = Depends(get_db),
     skip: int = 0,
     limit: int = 100,
-    search: Optional[str] = Query(None, description="Search ingredients by name")
+    search: Optional[str] = Query(None, description="Search ingredients by name"),
+    trending: Optional[bool] = Query(None, description="Filter by trending ingredients"),
+    type: Optional[str] = Query(None, description="Filter by ingredient type (function)")
 ):
     """
     Retrieve a list of ingredients with optional search and pagination.
     """
-    ingredients = ingredient_service.get_ingredients(db, skip=skip, limit=limit, search=search)
+    query = db.query(IngredientModel)
+    if search:
+        query = query.filter(IngredientModel.name.contains(search))
+    if trending:
+        query = query.join(TrendData, TrendData.content.contains(IngredientModel.name))
+    if type:
+        query = query.filter(IngredientModel.function == type)
+    ingredients = query.offset(skip).limit(limit).all()
     ingredients_response = [Ingredient.from_orm(ingredient) for ingredient in ingredients]
     return APIResponse(message="Ingredients retrieved successfully", data=ingredients_response)
 
