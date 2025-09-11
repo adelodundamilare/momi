@@ -16,5 +16,4 @@ class Ingredient(Base):
     unit = Column(String, nullable=True)
     allergies = Column(String, nullable=True)
     function = Column(String, nullable=True)
-    notes = Column(Text, nullable=True)
     cost_per_unit = Column(Float, nullable=True)

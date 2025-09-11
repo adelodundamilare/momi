@@ -14,7 +14,6 @@ class IngredientBase(BaseModel):
     unit: Optional[str] = None
     allergies: Optional[str] = None
     function: Optional[str] = None
-    notes: Optional[str] = None
     cost_per_unit: Optional[float] = None
 
 # Properties to receive on item creation
