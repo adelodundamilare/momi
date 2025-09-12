@@ -2,7 +2,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
-from app.endpoints import auth, account, utility, ingredient, formula, trend, chat, ai_insight, social_post, consumer_insight, commercial_workflow, news_feed, insight_portal, supplier
+from app.endpoints import auth, account, utility, ingredient, formula, trend, chat, social_post, commercial_workflow, news_feed, insight_portal, supplier
 from fastapi.exceptions import RequestValidationError
 from app.middleware.exceptions import global_exception_handler
 
@@ -33,9 +33,7 @@ app.include_router(ingredient.router, prefix="/ingredients", tags=["ingredients"
 app.include_router(formula.router, prefix="/formulas", tags=["formulas"])
 app.include_router(trend.router, prefix="/trends", tags=["trends"])
 app.include_router(chat.router, prefix="/chat", tags=["chat"])
-app.include_router(ai_insight.router, prefix="/insights", tags=["insights"])
 app.include_router(social_post.router, prefix="/social-posts", tags=["social_posts"])
-app.include_router(consumer_insight.router, prefix="/consumer-insights", tags=["consumer_insights"])
 app.include_router(commercial_workflow.router, prefix="/commercial-workflow", tags=["commercial_workflow"])
 app.include_router(news_feed.router, prefix="/news-feed", tags=["news_feed"])
 app.include_router(insight_portal.router, prefix="/insight-portal", tags=["insight_portal"])

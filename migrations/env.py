@@ -10,8 +10,6 @@ load_dotenv()
 # This is where your Base (metadata) object is imported
 from app.core.database import Base  # Replace 'myapp.models' with your actual models module
 from app.models.user import User
-from app.models.ai_insight import Insight
-from app.models.consumer_insight import ConsumerInsight
 from app.models.formula import Formula
 from app.models.ingredient import Ingredient
 
