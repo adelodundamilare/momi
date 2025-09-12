@@ -154,7 +154,7 @@ class OpenAIProvider(AIProvider):
             "You are an AI assistant specializing in food and beverage market insights. "
             "For the given ingredient, generate mock data for an insight portal dashboard. "
             "Include: shared product concepts, company competitors, assistant recommendations, "
-            "demography data (age groups), gender bias (male vs female ratio), and top geographic locations. "
+            "demography data (age groups, e.g., {'18-24': 150, '25-34': 200}), gender bias (male vs female ratio, e.g., {'male': 0.4, 'female': 0.6}), and top geographic locations (list of strings). "
             "Respond with a JSON object with keys: 'shared_product_concepts', 'company_competitors', 'assistant_recommendations', 'demography_data', 'gender_bias', 'top_geographic_locations'."
         )
         user_prompt = f"Generate insight portal data for: {ingredient_name}"
@@ -168,6 +168,9 @@ class OpenAIProvider(AIProvider):
                 ]
             )
             response_content = json.loads(response.choices[0].message.content)
+            # Ensure demography_data values are integers
+            if "demography_data" in response_content and isinstance(response_content["demography_data"], dict):
+                response_content["demography_data"] = {k: int(v) for k, v in response_content["demography_data"].items()}
             return response_content
         except Exception as e:
             print(f"Error generating insight portal data for {ingredient_name}: {e}")

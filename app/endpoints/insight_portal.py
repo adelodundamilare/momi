@@ -7,6 +7,7 @@ from app.models.trend import TrendData
 from sqlalchemy import func
 from app.crud.ingredient import ingredient as ingredient_crud
 from app.services.insight_portal import InsightPortalService
+import random
 
 router = APIRouter()
 
@@ -30,7 +31,7 @@ def get_insight_portal(
     for _ in range(3): # Generate data for 3 random platforms
         platform = random.choice(social_platforms)
         mentions = random.randint(100, 5000)
-        
+
         # Generate random trend and percentage
         trend_direction = random.choice(["up", "down", "stable"])
         change_percentage = round(random.uniform(0.5, 20.0), 2) # 0.5% to 20% change
