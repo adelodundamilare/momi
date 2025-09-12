@@ -27,6 +27,10 @@ class AIProvider(ABC):
     def generate_ingredient_enrichment(self, ingredient_name: str) -> Dict[str, Any]:
         pass
 
+    @abstractmethod
+    def generate_insight_portal_data(self, ingredient_name: str) -> Dict[str, Any]:
+        pass
+
 class OpenAIProvider(AIProvider):
     def __init__(self):
         self.client = openai.OpenAI(api_key=settings.OPENAI_API_KEY)
@@ -143,4 +147,28 @@ class OpenAIProvider(AIProvider):
             return response_content
         except Exception as e:
             print(f"Error enriching ingredient {ingredient_name}: {e}")
+            return {}
+
+    def generate_insight_portal_data(self, ingredient_name: str) -> Dict[str, Any]:
+        system_prompt = (
+            "You are an AI assistant specializing in food and beverage market insights. "
+            "For the given ingredient, generate mock data for an insight portal dashboard. "
+            "Include: shared product concepts, company competitors, assistant recommendations, "
+            "demography data (age groups), gender bias (male vs female ratio), and top geographic locations. "
+            "Respond with a JSON object with keys: 'shared_product_concepts', 'company_competitors', 'assistant_recommendations', 'demography_data', 'gender_bias', 'top_geographic_locations'."
+        )
+        user_prompt = f"Generate insight portal data for: {ingredient_name}"
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model,
+                response_format={"type": "json_object"},
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ]
+            )
+            response_content = json.loads(response.choices[0].message.content)
+            return response_content
+        except Exception as e:
+            print(f"Error generating insight portal data for {ingredient_name}: {e}")
             return {}

@@ -4,6 +4,8 @@ from typing import List, Dict, Optional
 class IngredientSocialMention(BaseModel):
     ingredient_name: str
     social_mentions: Dict[str, int]
+    trend: str
+    change_percentage: float
 
 class InsightPortal(BaseModel):
     top_ingredient_mentions: List[IngredientSocialMention]
