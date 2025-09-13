@@ -150,28 +150,85 @@ class OpenAIProvider(AIProvider):
             return {}
 
     def generate_insight_portal_data(self, ingredient_name: str) -> Dict[str, Any]:
-        system_prompt = (
-            "You are an AI assistant specializing in food and beverage market insights. "
-            "For the given ingredient, generate mock data for an insight portal dashboard. "
-            "Include: shared product concepts, company competitors, assistant recommendations, "
-            "demography data (age groups, e.g., {'18-24': 150, '25-34': 200}), gender bias (male vs female ratio, e.g., {'male': 0.4, 'female': 0.6}), and top geographic locations (list of strings). "
-            "Respond with a JSON object with keys: 'shared_product_concepts', 'company_competitors', 'assistant_recommendations', 'demography_data', 'gender_bias', 'top_geographic_locations'."
+        # Helper function for making AI calls with specific prompts
+        def _call_ai_for_json(system_prompt: str, user_prompt: str) -> Dict[str, Any]:
+            try:
+                response = self.client.chat.completions.create(
+                    model=self.model,
+                    response_format={"type": "json_object"},
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt}
+                    ]
+                )
+                return json.loads(response.choices[0].message.content)
+            except Exception as e:
+                print(f"Error in AI call: {e}")
+                return {}
+
+        # 1. Shared Product Concepts
+        product_concept_prompt = (
+            f"You are an AI assistant specializing in food and beverage product development. "
+            f"For the ingredient '{ingredient_name}', generate 3-5 innovative product concepts. "
+            f"For each concept, provide a title, a plausible URL for a product concept image, and a list of 3-5 key ingredients (including '{ingredient_name}' if applicable). "
+            f"Respond with a JSON object where 'shared_product_concepts' is a list of objects, each with 'image' (string URL), 'title' (string), and 'key_ingredients' (list of strings)."
         )
-        user_prompt = f"Generate insight portal data for: {ingredient_name}"
-        try:
-            response = self.client.chat.completions.create(
-                model=self.model,
-                response_format={"type": "json_object"},
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt}
-                ]
-            )
-            response_content = json.loads(response.choices[0].message.content)
-            # Ensure demography_data values are integers
-            if "demography_data" in response_content and isinstance(response_content["demography_data"], dict):
-                response_content["demography_data"] = {k: int(v) for k, v in response_content["demography_data"].items()}
-            return response_content
-        except Exception as e:
-            print(f"Error generating insight portal data for {ingredient_name}: {e}")
-            return {}
+        product_concept_data = _call_ai_for_json(product_concept_prompt, f"Product concepts for {ingredient_name}")
+
+        # 2. Company Competitors
+        competitors_prompt = (
+            f"You are an AI assistant specializing in food and beverage market analysis. "
+            f"For products featuring '{ingredient_name}', identify 3-5 potential competitor companies or brands. "
+            f"Respond with a JSON object where 'company_competitors' is a list of strings."
+        )
+        competitors_data = _call_ai_for_json(competitors_prompt, f"Competitors for {ingredient_name}")
+
+        # 3. Assistant Recommendations
+        recommendations_prompt = (
+            f"You are an AI assistant providing strategic recommendations for food and beverage businesses. "
+            f"For the ingredient '{ingredient_name}', suggest 3-5 actionable recommendations for product development or market strategy. "
+            f"Respond with a JSON object where 'assistant_recommendations' is a list of strings."
+        )
+        recommendations_data = _call_ai_for_json(recommendations_prompt, f"Recommendations for {ingredient_name}")
+
+        # 4. Demography Data
+        demography_prompt = (
+            f"You are an AI assistant specializing in consumer demographics for food and beverage. "
+            f"For products featuring '{ingredient_name}', generate plausible demographic data for age groups (18-24, 25-34, 35-44, 45-54, 55-64, 65+). "
+            f"Respond with a JSON object where 'demography_data' is a dictionary with age ranges as keys and integer counts as values."
+        )
+        demography_data = _call_ai_for_json(demography_prompt, f"Demography data for {ingredient_name}")
+
+        # 5. Gender Bias
+        gender_bias_prompt = (
+            f"You are an AI assistant specializing in consumer demographics for food and beverage. "
+            f"For products featuring '{ingredient_name}', generate plausible gender bias data (male vs female ratio). "
+            f"Respond with a JSON object where 'gender_bias' is a dictionary with 'male' and 'female' as keys and float ratios as values (summing to 1.0)."
+        )
+        gender_bias_data = _call_ai_for_json(gender_bias_prompt, f"Gender bias for {ingredient_name}")
+
+        # 6. Top Geographic Locations
+        geo_prompt = (
+            f"You are an AI assistant specializing in food and beverage market geography. "
+            f"For products featuring '{ingredient_name}', identify 3-5 top plausible geographic locations for consumption or market interest. "
+            f"Respond with a JSON object where 'top_geographic_locations' is a list of strings."
+        )
+        geo_data = _call_ai_for_json(geo_prompt, f"Top geographic locations for {ingredient_name}")
+
+        # Aggregate results
+        final_data = {
+            "shared_product_concepts": product_concept_data.get("shared_product_concepts", []),
+            "key_ingredients": product_concept_data.get("key_ingredients", []),
+            "product_concept_image": product_concept_data.get("product_concept_image"),
+            "company_competitors": competitors_data.get("company_competitors", []),
+            "assistant_recommendations": recommendations_data.get("assistant_recommendations", []),
+            "demography_data": demography_data.get("demography_data", {}),
+            "gender_bias": gender_bias_data.get("gender_bias", {}),
+            "top_geographic_locations": geo_data.get("top_geographic_locations", []),
+        }
+
+        # Ensure demography_data values are integers
+        if "demography_data" in final_data and isinstance(final_data["demography_data"], dict):
+            final_data["demography_data"] = {k: int(v) for k, v in final_data["demography_data"].items()}
+
+        return final_data

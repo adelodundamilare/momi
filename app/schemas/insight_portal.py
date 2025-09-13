@@ -6,9 +6,14 @@ class SocialPlatformMention(BaseModel):
     trend: str
     change: str
 
+class ProductConcept(BaseModel):
+    image: str
+    title: str
+    key_ingredients: List[str]
+
 class InsightPortal(BaseModel):
     top_ingredient_mentions: Dict[str, SocialPlatformMention]
-    shared_product_concepts: List[str]
+    shared_product_concepts: List[ProductConcept]
     company_competitors: List[str]
     assistant_recommendations: List[str]
     demography_data: Dict[str, int]
