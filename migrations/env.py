@@ -13,7 +13,6 @@ from app.models.user import User
 from app.models.formula import Formula
 from app.models.ingredient import Ingredient
 
-from app.models.social_post import SocialPost
 from app.models.trend import TrendData
 from app.models.news_feed import NewsFeed
 from app.models.chat import ChatHistory
