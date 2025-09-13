@@ -5,7 +5,9 @@ from app.core.config import settings
 from app.endpoints import auth, account, utility, ingredient, formula, trend, chat, commercial_workflow, news_feed, insight_portal, supplier
 from fastapi.exceptions import RequestValidationError
 from app.middleware.exceptions import global_exception_handler
+import logging
 
+logging.basicConfig(level=logging.DEBUG)
 
 app = FastAPI(
     title=settings.PROJECT_NAME,

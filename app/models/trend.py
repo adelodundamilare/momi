@@ -14,4 +14,3 @@ class TrendData(Base):
     tags = Column(JSON, nullable=True)
     socials = Column(JSON, nullable=True)
     image = Column(String, nullable=True)
-    ingredient_id = Column(Integer, ForeignKey('ingredients.id'), nullable=True)

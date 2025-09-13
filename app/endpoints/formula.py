@@ -1,38 +1,30 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from typing import List, Dict, Any
 
 from app.core.database import get_db
-from app.schemas.formula import Formula, FormulaCreate
-from app.services.formula import FormulaService
+from app.schemas.formula import Formula
+
 from app.utils.deps import get_current_user
 from app.models.user import User
 from app.schemas.utility import APIResponse
 
 from app.schemas.formula_analysis import FormulaAnalysis
 
+from app.schemas.formula import FormulaGenerationRequest
+from app.services.formula import FormulaService
+
+
 router = APIRouter()
 
 formula_service = FormulaService()
 
-@router.post("/", response_model=APIResponse)
-def create_formula(
-    *, 
-    db: Session = Depends(get_db), 
-    formula_in: FormulaCreate,
-    current_user: User = Depends(get_current_user)
-):
-    """
-    Create new formula. Requires authentication.
-    """
-    formula = formula_service.create_formula(db, formula_data=formula_in, current_user=current_user)
-    formula_response = Formula.from_orm(formula)
-    return APIResponse(message="Formula created successfully", data=formula_response)
+
 
 @router.get("/{id}", response_model=APIResponse)
 def read_formula(
-    *, 
-    db: Session = Depends(get_db), 
+    *,
+    db: Session = Depends(get_db),
     id: int
 ):
     """
@@ -43,6 +35,22 @@ def read_formula(
         raise HTTPException(status_code=404, detail="Formula not found")
     formula_response = Formula.from_orm(formula)
     return APIResponse(message="Formula retrieved successfully", data=formula_response)
+
+@router.post("/generate-from-concept", response_model=APIResponse)
+def generate_formula_from_concept(
+    request: FormulaGenerationRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Generates a formula based on a product concept using AI.
+    """
+    try:
+        generated_formula_data = formula_service.generate_formula_from_concept(db, request.product_concept, current_user)
+        formula_response = Formula.from_orm(generated_formula_data)
+        return APIResponse(message="Formula generated successfully", data=formula_response)
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 @router.get("/suggest-substitutions", response_model=APIResponse)
 def suggest_substitutions(
@@ -84,7 +92,8 @@ def get_formula_analysis(
 
 @router.get("/{formula_id}/export/excel", response_model=APIResponse)
 def export_formula_excel(
-    formula_id: int
+    formula_id: int,
+    current_user: User = Depends(get_current_user)
 ):
     """
     Export formula to Excel.
@@ -93,7 +102,8 @@ def export_formula_excel(
 
 @router.get("/{formula_id}/export/pdf", response_model=APIResponse)
 def export_formula_pdf(
-    formula_id: int
+    formula_id: int,
+    current_user: User = Depends(get_current_user)
 ):
     """
     Export formula to PDF.

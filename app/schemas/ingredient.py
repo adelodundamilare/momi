@@ -7,7 +7,6 @@ class IngredientBase(BaseModel):
     slug: Optional[str] = None
     description: Optional[str] = None
     cost: Optional[float] = None
-    vendor: Optional[str] = None
     benefits: Optional[str] = None
     claims: Optional[str] = None
     regulatory_notes: Optional[str] = None
@@ -22,8 +21,19 @@ class IngredientCreate(IngredientBase):
     pass
 
 # Properties to receive on item update
-class IngredientUpdate(IngredientBase):
-    pass
+class IngredientUpdate(BaseModel):
+    name: Optional[str] = None
+    slug: Optional[str] = None
+    description: Optional[str] = None
+    cost: Optional[float] = None
+    benefits: Optional[str] = None
+    claims: Optional[str] = None
+    regulatory_notes: Optional[str] = None
+    weight: Optional[float] = None
+    unit: Optional[str] = None
+    allergies: Optional[str] = None
+    function: Optional[str] = None
+    cost_per_unit: Optional[float] = None
 
 # Properties shared by models stored in DB
 class IngredientInDBBase(IngredientBase):

@@ -11,8 +11,6 @@ load_dotenv()
 from app.core.database import Base  # Replace 'myapp.models' with your actual models module
 from app.models.user import User
 from app.models.formula import Formula
-from app.models.ingredient import Ingredient
-
 from app.models.trend import TrendData
 from app.models.news_feed import NewsFeed
 from app.models.chat import ChatHistory

@@ -1,17 +1,26 @@
 from sqlalchemy.orm import Session
 from app.crud.formula import formula as formula_crud
 from app.crud.ingredient import ingredient as ingredient_crud
-from app.schemas.formula import FormulaCreate
+from app.schemas.formula import FormulaCreate, FormulaIngredientCreate
+from app.schemas.ingredient import IngredientCreate
 from app.models.user import User
 from fastapi import HTTPException, status
 import json
 from typing import List, Dict, Any
 
 from app.services.ai_provider import AIProvider, OpenAIProvider # Import the new provider
+from app.services.ingredient import IngredientService
+from app.utils.text_utils import generate_slug
+from app.crud.supplier import supplier as supplier_crud
+from app.schemas.supplier import SupplierCreate
+from faker import Faker
+import random
 
 class FormulaService:
     def __init__(self, ai_provider: AIProvider = OpenAIProvider()): # Inject the provider
         self.ai_provider = ai_provider
+        self.ingredient_service = IngredientService()
+        self.fake = Faker()
 
     def create_formula(self, db: Session, *, formula_data: FormulaCreate, current_user: User):
         # Validate that all ingredients exist before creating the formula
@@ -24,6 +33,53 @@ class FormulaService:
                 )
         
         return formula_crud.create_with_author(db, obj_in=formula_data, author_id=current_user.id)
+
+    def generate_formula_from_concept(self, db: Session, product_concept: str, current_user: Any) -> Any:
+        # 1. Call AI to get ingredients, quantities, and estimated costs
+        ai_generated_formula_details = self.ai_provider.generate_formula_details(product_concept)
+
+        formula_name = ai_generated_formula_details.get("formula_name", product_concept)
+        formula_description = ai_generated_formula_details.get("formula_description", f"Formula for {product_concept}")
+        ai_ingredients = ai_generated_formula_details.get("ingredients", [])
+
+        formula_ingredients_create = []
+        for ai_ingredient in ai_ingredients:
+            ingredient_name = ai_ingredient.get("name")
+            quantity = ai_ingredient.get("quantity")
+
+            if not ingredient_name or quantity is None:
+                continue
+
+            ingredient_slug = generate_slug(ingredient_name)
+            existing_ingredient = ingredient_crud.get_by_slug(db, slug=ingredient_slug)
+
+            if not existing_ingredient:
+                # Create new ingredient (this will trigger supplier generation)
+                new_ingredient_data = IngredientCreate(name=ingredient_name, slug=ingredient_slug)
+                created_ingredient = self.ingredient_service.create_ingredient(db, ingredient_data=new_ingredient_data)
+                ingredient_id = created_ingredient.id
+                # AI Enrichment for new ingredient
+                self.ingredient_service.enrich_ingredient_with_ai(db, ingredient_id=created_ingredient.id)
+            else:
+                ingredient_id = existing_ingredient.id
+            
+            formula_ingredients_create.append(FormulaIngredientCreate(
+                ingredient_id=ingredient_id,
+                quantity=quantity
+            ))
+        
+        # 2. Create the Formula entry and save to DB
+        formula_create_data = FormulaCreate(
+            name=formula_name,
+            description=formula_description,
+            product_concept=product_concept,
+            ingredients=formula_ingredients_create,
+        )
+        
+        # Save the formula to the database
+        created_formula = formula_crud.create_with_author(db, obj_in=formula_create_data, author_id=current_user.id)
+        
+        return created_formula
 
     def get_formula(self, db: Session, id: int):
         return formula_crud.get(db, id=id)

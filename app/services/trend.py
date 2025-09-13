@@ -5,10 +5,6 @@ from typing import List
 
 from app.crud.trend import trend as trend_crud
 from app.schemas.trend import TrendDataCreate
-from app.crud.ingredient import ingredient as ingredient_crud
-from app.schemas.ingredient import IngredientCreate, IngredientUpdate
-from app.services.ingredient import IngredientService
-from app.utils.text_utils import generate_slug
 
 class TrendService:
     def scrape_and_save(self, db: Session, *, url: str, category: str | None, tags: List[str] | None):
@@ -63,35 +59,13 @@ class TrendService:
             if not content:
                 content = "No content could be extracted."
 
-            # --- Ingredient Ingestion Flow ---
-            ingredient_name = title # Assuming trend title is the ingredient name for now
-            ingredient_slug = generate_slug(ingredient_name)
-
-            existing_ingredient = ingredient_crud.get_by_slug(db, slug=ingredient_slug)
-            ingredient_id = None
-
-            if existing_ingredient:
-                ingredient_id = existing_ingredient.id
-                # Optionally update existing ingredient with new trend info
-                # ingredient_crud.update(db, db_obj=existing_ingredient, obj_in=IngredientUpdate(...))
-            else:
-                # Create new ingredient
-                new_ingredient_data = IngredientCreate(name=ingredient_name, slug=ingredient_slug)
-                new_ingredient = ingredient_crud.create(db, obj_in=new_ingredient_data)
-                ingredient_id = new_ingredient.id
-                
-                # AI Enrichment for new ingredient
-                ingredient_service = IngredientService() # Instantiate service
-                ingredient_service.enrich_ingredient_with_ai(db, ingredient_id=new_ingredient.id)
-
-            # Save TrendData, linking to ingredient
+            # Save TrendData
             trend_data = TrendDataCreate(
                 source_url=url,
                 title=title,
                 content=content,
                 category=category,
                 tags=tags,
-                ingredient_id=ingredient_id, # Link to the ingredient
                 image=image_url # Save the extracted image URL
             )
             trend_crud.create(db, obj_in=trend_data)
@@ -105,4 +79,5 @@ class TrendService:
     def get_trends(self, db: Session):
         # In a real app, you'd add pagination here
         return db.query(trend_crud.model).order_by(trend_crud.model.scraped_at.desc()).all()
+
 

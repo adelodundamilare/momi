@@ -32,6 +32,9 @@ class FormulaCreate(FormulaBase):
 class FormulaUpdate(FormulaBase):
     ingredients: Optional[List[FormulaIngredientCreate]] = None
 
+class FormulaGenerationRequest(BaseModel):
+    product_concept: str
+
 # Properties shared by models stored in DB
 class FormulaInDBBase(FormulaBase):
     id: int

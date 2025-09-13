@@ -39,7 +39,8 @@ def scrape_news(
     *, 
     db: Session = Depends(get_db), 
     request: ScrapeRequest,
-    background_tasks: BackgroundTasks
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_user)
 ):
     """
     Initiate scraping of a news URL in the background.
