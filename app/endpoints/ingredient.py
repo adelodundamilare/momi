@@ -79,7 +79,15 @@ def get_ingredient_price_chart(
         if not ingredient:
             raise HTTPException(status_code=404, detail="Ingredient not found")
 
-        base_price = ingredient.cost if ingredient.cost is not None else 10.0 # Default if cost is null
+        # Get base price from an associated supplier
+        base_price = None
+        if ingredient.suppliers:
+            # For simplicity, use the price from the first supplier
+            base_price = ingredient.suppliers[0].price_per_unit
+
+        if base_price is None:
+            raise HTTPException(status_code=404, detail="Ingredient has no associated suppliers with price data.")
+
         chart_data = []
         current_date = date.today()
 

@@ -37,9 +37,9 @@ def read_suppliers(
         if search:
             query = query.filter(supplier.model.full_name.contains(search))
         if min_price is not None:
-            query = query.filter(supplier.model.price_per_kg >= min_price)
+            query = query.filter(supplier.model.price_per_unit >= min_price)
         if max_price is not None:
-            query = query.filter(supplier.model.price_per_kg <= max_price)
+            query = query.filter(supplier.model.price_per_unit <= max_price)
         if min_moq is not None:
             query = query.filter(supplier.model.moq_weight_kg >= min_moq)
         if max_moq is not None:

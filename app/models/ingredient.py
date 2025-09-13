@@ -17,7 +17,6 @@ class Ingredient(Base):
     name = Column(String, index=True, unique=True, nullable=False)
     slug = Column(String, unique=True, index=True, nullable=False)
     description = Column(Text, nullable=True)
-    cost = Column(Float, nullable=True)
     benefits = Column(Text, nullable=True)
     claims = Column(Text, nullable=True)
     regulatory_notes = Column(Text, nullable=True)
@@ -25,6 +24,5 @@ class Ingredient(Base):
     unit = Column(String, nullable=True)
     allergies = Column(String, nullable=True)
     function = Column(String, nullable=True)
-    cost_per_unit = Column(Float, nullable=True)
 
     suppliers = relationship("Supplier", secondary=ingredient_suppliers, back_populates="ingredients")

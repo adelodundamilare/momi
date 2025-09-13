@@ -31,14 +31,14 @@ class IngredientService:
                 title=self.fake.job(),
                 availability=random.choice(["In Stock", "Limited", "Pre-order"]),
                 description=self.fake.paragraph(nb_sentences=2),
-                price_per_kg=round(random.uniform(5.0, 50.0), 2),
+                price_per_unit=round(random.uniform(5.0, 50.0), 2),
                 moq_weight_kg=random.choice([10, 25, 50, 100]),
                 delivery_duration=random.choice(["1-3 days", "1 week", "2 weeks"]),
                 us_approved_status=self.fake.boolean()
             )
             created_supplier = supplier_crud.create(db, obj_in=mock_supplier_data)
             new_ingredient.suppliers.append(created_supplier) # Establish relationship
-        
+
         db.commit()
         db.refresh(new_ingredient)
         return new_ingredient
@@ -69,9 +69,8 @@ class IngredientService:
             function=ai_generated_data.get("function"),
             weight=ai_generated_data.get("weight"),
             unit=ai_generated_data.get("unit"),
-            cost=ai_generated_data.get("cost"),
             allergies=ai_generated_data.get("allergies"),
         )
         return ingredient_crud.update(db, db_obj=ingredient, obj_in=ingredient_update_data)
 
-    
+

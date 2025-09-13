@@ -37,7 +37,7 @@ def upgrade() -> None:
     sa.Column('title', sa.String(), nullable=True),
     sa.Column('availability', sa.String(), nullable=True),
     sa.Column('description', sa.Text(), nullable=True),
-    sa.Column('price_per_kg', sa.Float(), nullable=True),
+    sa.Column('price_per_unit', sa.Float(), nullable=True),
     sa.Column('moq_weight_kg', sa.Float(), nullable=True),
     sa.Column('delivery_duration', sa.String(), nullable=True),
     sa.Column('us_approved_status', sa.Boolean(), nullable=True),

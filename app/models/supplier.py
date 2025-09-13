@@ -13,7 +13,7 @@ class Supplier(Base):
     title = Column(String, nullable=True)
     availability = Column(String, nullable=True)
     description = Column(Text, nullable=True)
-    price_per_kg = Column(Float, nullable=True)
+    price_per_unit = Column(Float, nullable=True)
     moq_weight_kg = Column(Float, nullable=True)
     delivery_duration = Column(String, nullable=True)
     us_approved_status = Column(Boolean, default=False)

@@ -8,7 +8,7 @@ class SupplierBase(BaseModel):
     title: Optional[str] = None
     availability: Optional[str] = None
     description: Optional[str] = None
-    price_per_kg: Optional[float] = None
+    price_per_unit: Optional[float] = None
     moq_weight_kg: Optional[float] = None
     delivery_duration: Optional[str] = None
     us_approved_status: bool = False

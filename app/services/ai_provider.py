@@ -184,9 +184,8 @@ class OpenAIProvider(AIProvider):
             f"You are an expert in food and beverage ingredients. For the ingredient '{ingredient_name}', generate: "
             f"- an estimated typical weight (e.g., 100)\n"
             f"- unit (e.g., 'grams', 'ml', 'pieces')\n"
-            f"- an estimated typical cost (e.g., 5.99)\n"
             f"- common allergies associated with it (as a comma-separated string).\n"
-            f"Respond with a JSON object with keys: 'weight', 'unit', 'cost', 'allergies'."
+            f"Respond with a JSON object with keys: 'weight', 'unit', 'allergies'."
         )
         misc_data = _call_ai_for_json(misc_data_prompt, f"Misc data for {ingredient_name}")
 
@@ -198,7 +197,6 @@ class OpenAIProvider(AIProvider):
             "function": function_data.get("function"),
             "weight": misc_data.get("weight"),
             "unit": misc_data.get("unit"),
-            "cost": misc_data.get("cost"),
             "allergies": misc_data.get("allergies"),
         }
 
@@ -296,6 +294,7 @@ class OpenAIProvider(AIProvider):
             f"    - name (string)\n"
             f"    - quantity (float)\n"
             f"    - estimated_cost (float)\n"
+            f"    - suggested_supplier_name (string)\n"
             f"Respond with a JSON object with keys: 'formula_name', 'formula_description', 'ingredients' (list of objects)."
         )
         user_prompt = f"Generate formula details for: {product_concept}"
