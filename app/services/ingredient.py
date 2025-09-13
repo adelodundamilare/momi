@@ -3,8 +3,15 @@ from app.crud.ingredient import ingredient as ingredient_crud
 from app.schemas.ingredient import IngredientCreate, IngredientUpdate
 from fastapi import HTTPException, status
 from app.services.ai_provider import AIProvider, OpenAIProvider
+from faker import Faker
+import random
+from app.crud.supplier import supplier as supplier_crud
+from app.schemas.supplier import SupplierCreate
 
 class IngredientService:
+    def __init__(self):
+        self.fake = Faker()
+
     def create_ingredient(self, db: Session, *, ingredient_data: IngredientCreate):
         existing_ingredient = ingredient_crud.get_by_slug(db, slug=ingredient_data.slug)
         if existing_ingredient:
@@ -12,7 +19,29 @@ class IngredientService:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"An ingredient with the slug '{ingredient_data.slug}' already exists."
             )
-        return ingredient_crud.create(db, obj_in=ingredient_data)
+        new_ingredient = ingredient_crud.create(db, obj_in=ingredient_data)
+
+        # Generate and attach mock suppliers
+        num_suppliers = random.randint(0, 10)
+        for _ in range(num_suppliers):
+            mock_supplier_data = SupplierCreate(
+                full_name=self.fake.company(),
+                avatar=self.fake.image_url(),
+                image=self.fake.image_url(),
+                title=self.fake.job(),
+                availability=random.choice(["In Stock", "Limited", "Pre-order"]),
+                description=self.fake.paragraph(nb_sentences=2),
+                price_per_kg=round(random.uniform(5.0, 50.0), 2),
+                moq_weight_kg=random.choice([10, 25, 50, 100]),
+                delivery_duration=random.choice(["1-3 days", "1 week", "2 weeks"]),
+                us_approved_status=self.fake.boolean()
+            )
+            created_supplier = supplier_crud.create(db, obj_in=mock_supplier_data)
+            new_ingredient.suppliers.append(created_supplier) # Establish relationship
+        
+        db.commit()
+        db.refresh(new_ingredient)
+        return new_ingredient
 
     def get_ingredient(self, db: Session, id: int):
         return ingredient_crud.get(db, id=id)
