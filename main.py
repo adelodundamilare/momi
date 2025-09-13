@@ -7,7 +7,7 @@ from fastapi.exceptions import RequestValidationError
 from app.middleware.exceptions import global_exception_handler
 import logging
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 app = FastAPI(
     title=settings.PROJECT_NAME,

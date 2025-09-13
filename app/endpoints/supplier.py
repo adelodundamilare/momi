@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
 
@@ -11,6 +11,9 @@ from app.models.user import User
 from app.models.bookmarked_supplier import BookmarkedSupplier
 from app.crud.bookmarked_supplier import bookmarked_supplier
 from app.schemas.bookmarked_supplier import BookmarkedSupplierCreate
+from app.utils.logger import setup_logger
+
+logger = setup_logger("supplier_api", "supplier.log")
 
 router = APIRouter()
 
@@ -29,22 +32,26 @@ def read_suppliers(
     """
     Retrieve a list of suppliers with optional search and pagination.
     """
-    query = db.query(supplier.model)
-    if search:
-        query = query.filter(supplier.model.full_name.contains(search))
-    if min_price is not None:
-        query = query.filter(supplier.model.price_per_kg >= min_price)
-    if max_price is not None:
-        query = query.filter(supplier.model.price_per_kg <= max_price)
-    if min_moq is not None:
-        query = query.filter(supplier.model.moq_weight_kg >= min_moq)
-    if max_moq is not None:
-        query = query.filter(supplier.model.moq_weight_kg <= max_moq)
-    if us_approved is not None:
-        query = query.filter(supplier.model.us_approved_status == us_approved)
-    suppliers = query.offset(skip).limit(limit).all()
-    suppliers_response = [Supplier.from_orm(s) for s in suppliers]
-    return APIResponse(message="Suppliers retrieved successfully", data=suppliers_response)
+    try:
+        query = db.query(supplier.model)
+        if search:
+            query = query.filter(supplier.model.full_name.contains(search))
+        if min_price is not None:
+            query = query.filter(supplier.model.price_per_kg >= min_price)
+        if max_price is not None:
+            query = query.filter(supplier.model.price_per_kg <= max_price)
+        if min_moq is not None:
+            query = query.filter(supplier.model.moq_weight_kg >= min_moq)
+        if max_moq is not None:
+            query = query.filter(supplier.model.moq_weight_kg <= max_moq)
+        if us_approved is not None:
+            query = query.filter(supplier.model.us_approved_status == us_approved)
+        suppliers = query.offset(skip).limit(limit).all()
+        suppliers_response = [Supplier.from_orm(s) for s in suppliers]
+        return APIResponse(message="Suppliers retrieved successfully", data=suppliers_response)
+    except Exception as e:
+        logger.error(f"Error in read_suppliers: {str(e)}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 @router.post("/{supplier_id}/bookmark", response_model=APIResponse)
 def bookmark_supplier(
@@ -55,9 +62,13 @@ def bookmark_supplier(
     """
     Bookmark a supplier for the current user.
     """
-    obj_in = BookmarkedSupplierCreate(user_id=current_user.id, supplier_id=supplier_id)
-    bookmarked_supplier.create(db, obj_in=obj_in)
-    return APIResponse(message="Supplier bookmarked successfully")
+    try:
+        obj_in = BookmarkedSupplierCreate(user_id=current_user.id, supplier_id=supplier_id)
+        bookmarked_supplier.create(db, obj_in=obj_in)
+        return APIResponse(message="Supplier bookmarked successfully")
+    except Exception as e:
+        logger.error(f"Error in bookmark_supplier: {str(e)}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 @router.get("/bookmarked", response_model=APIResponse)
 def get_bookmarked_suppliers(
@@ -67,6 +78,10 @@ def get_bookmarked_suppliers(
     """
     Retrieve bookmarked suppliers for the current user.
     """
-    bookmarked = db.query(Supplier).join(BookmarkedSupplier, BookmarkedSupplier.supplier_id == Supplier.id).filter(BookmarkedSupplier.user_id == current_user.id).all()
-    bookmarked_response = [Supplier.from_orm(b) for b in bookmarked]
-    return APIResponse(message="Bookmarked suppliers retrieved successfully", data=bookmarked_response)
+    try:
+        bookmarked = db.query(Supplier).join(BookmarkedSupplier, BookmarkedSupplier.supplier_id == Supplier.id).filter(BookmarkedSupplier.user_id == current_user.id).all()
+        bookmarked_response = [Supplier.from_orm(b) for b in bookmarked]
+        return APIResponse(message="Bookmarked suppliers retrieved successfully", data=bookmarked_response)
+    except Exception as e:
+        logger.error(f"Error in get_bookmarked_suppliers: {str(e)}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))

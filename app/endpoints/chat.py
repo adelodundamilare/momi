@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from typing import List
@@ -10,6 +10,9 @@ from app.crud.chat import chat_history
 from app.utils.deps import get_current_user
 from app.models.user import User
 from app.schemas.utility import APIResponse
+from app.utils.logger import setup_logger
+
+logger = setup_logger("chat_api", "chat.log")
 
 router = APIRouter()
 
@@ -25,11 +28,15 @@ def stream_chat(
     """
     Receives a chat history and streams back a response from the AI.
     """
-    chat_history.create(db, obj_in=ChatHistoryCreate(user_id=current_user.id, messages=request.messages))
-    return StreamingResponse(
-        chat_service.send_streaming_message(request.messages, db, request.agent_type), 
-        media_type="text/event-stream"
-    )
+    try:
+        chat_history.create(db, obj_in=ChatHistoryCreate(user_id=current_user.id, messages=request.messages))
+        return StreamingResponse(
+            chat_service.send_streaming_message(request.messages, db, request.agent_type), 
+            media_type="text/event-stream"
+        )
+    except Exception as e:
+        logger.error(f"Error in stream_chat: {str(e)}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 @router.get("/history", response_model=APIResponse)
 def get_chat_history(
@@ -39,8 +46,12 @@ def get_chat_history(
     """
     Retrieve chat history for the current user.
     """
-    history = db.query(ChatHistory).filter(ChatHistory.user_id == current_user.id).all()
-    history_response = [ChatHistory.from_orm(h) for h in history]
-    return APIResponse(message="Chat history retrieved successfully", data=history_response)
+    try:
+        history = db.query(ChatHistory).filter(ChatHistory.user_id == current_user.id).all()
+        history_response = [ChatHistory.from_orm(h) for h in history]
+        return APIResponse(message="Chat history retrieved successfully", data=history_response)
+    except Exception as e:
+        logger.error(f"Error in get_chat_history: {str(e)}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 

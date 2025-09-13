@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, BackgroundTasks
+from fastapi import APIRouter, Depends, BackgroundTasks, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -13,6 +13,9 @@ from app.models.user import User
 from app.crud.bookmarked_news import bookmarked_news
 from app.schemas.bookmarked_news import BookmarkedNewsCreate
 from app.models.news_feed import NewsFeed as NewsFeedModel
+from app.utils.logger import setup_logger
+
+logger = setup_logger("news_feed_api", "news_feed.log")
 
 router = APIRouter()
 
@@ -30,9 +33,13 @@ def read_news_feed(
     """
     Retrieve a list of news feed items with pagination.
     """
-    news_feed_items = news_feed.get_multi(db, skip=skip, limit=limit)
-    news_feed_response = [NewsFeed.from_orm(item) for item in news_feed_items]
-    return APIResponse(message="News feed retrieved successfully", data=news_feed_response)
+    try:
+        news_feed_items = news_feed.get_multi(db, skip=skip, limit=limit)
+        news_feed_response = [NewsFeed.from_orm(item) for item in news_feed_items]
+        return APIResponse(message="News feed retrieved successfully", data=news_feed_response)
+    except Exception as e:
+        logger.error(f"Error in read_news_feed: {str(e)}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 @router.post("/scrape", response_model=APIResponse)
 def scrape_news(
@@ -45,8 +52,12 @@ def scrape_news(
     """
     Initiate scraping of a news URL in the background.
     """
-    background_tasks.add_task(scrape_task, db, str(request.url), request.category, request.tags)
-    return APIResponse(message="News scraping has been initiated in the background.")
+    try:
+        background_tasks.add_task(scrape_task, db, str(request.url), request.category, request.tags)
+        return APIResponse(message="News scraping has been initiated in the background.")
+    except Exception as e:
+        logger.error(f"Error in scrape_news: {str(e)}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 @router.post("/{news_id}/bookmark", response_model=APIResponse)
 def bookmark_news(
@@ -57,9 +68,13 @@ def bookmark_news(
     """
     Bookmark a news item for the current user.
     """
-    obj_in = BookmarkedNewsCreate(user_id=current_user.id, news_feed_id=news_id)
-    bookmarked_news.create(db, obj_in=obj_in)
-    return APIResponse(message="News item bookmarked successfully")
+    try:
+        obj_in = BookmarkedNewsCreate(user_id=current_user.id, news_feed_id=news_id)
+        bookmarked_news.create(db, obj_in=obj_in)
+        return APIResponse(message="News item bookmarked successfully")
+    except Exception as e:
+        logger.error(f"Error in bookmark_news: {str(e)}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 @router.get("/bookmarked", response_model=APIResponse)
 def get_bookmarked_news(
@@ -69,6 +84,10 @@ def get_bookmarked_news(
     """
     Retrieve bookmarked news items for the current user.
     """
-    bookmarked = db.query(NewsFeedModel).join(bookmarked_news.model).filter(bookmarked_news.model.user_id == current_user.id).all()
-    bookmarked_response = [NewsFeed.from_orm(b) for b in bookmarked]
-    return APIResponse(message="Bookmarked news retrieved successfully", data=bookmarked_response)
+    try:
+        bookmarked = db.query(NewsFeedModel).join(bookmarked_news.model).filter(bookmarked_news.model.user_id == current_user.id).all()
+        bookmarked_response = [NewsFeed.from_orm(b) for b in bookmarked]
+        return APIResponse(message="Bookmarked news retrieved successfully", data=bookmarked_response)
+    except Exception as e:
+        logger.error(f"Error in get_bookmarked_news: {str(e)}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))

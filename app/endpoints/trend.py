@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, BackgroundTasks
+from fastapi import APIRouter, Depends, BackgroundTasks, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -6,6 +6,9 @@ from app.core.database import get_db
 from app.schemas.trend import TrendData, ScrapeRequest
 from app.services.trend import TrendService
 from app.schemas.utility import APIResponse
+from app.utils.logger import setup_logger
+
+logger = setup_logger("trend_api", "trend.log")
 
 router = APIRouter()
 
@@ -24,8 +27,12 @@ def scrape_url(
     """
     Initiate scraping of a URL in the background.
     """
-    background_tasks.add_task(scrape_task, db, str(request.url), request.category, request.tags)
-    return APIResponse(message="Scraping has been initiated in the background.")
+    try:
+        background_tasks.add_task(scrape_task, db, str(request.url), request.category, request.tags)
+        return APIResponse(message="Scraping has been initiated in the background.")
+    except Exception as e:
+        logger.error(f"Error in scrape_url: {str(e)}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 @router.get("/", response_model=APIResponse)
 def read_trends(
@@ -34,6 +41,10 @@ def read_trends(
     """
     Retrieve a list of scraped trends.
     """
-    trends = trend_service.get_trends(db)
-    trends_response = [TrendData.from_orm(trend) for trend in trends]
-    return APIResponse(message="Scraped trends retrieved successfully", data=trends_response)
+    try:
+        trends = trend_service.get_trends(db)
+        trends_response = [TrendData.from_orm(trend) for trend in trends]
+        return APIResponse(message="Scraped trends retrieved successfully", data=trends_response)
+    except Exception as e:
+        logger.error(f"Error in read_trends: {str(e)}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
