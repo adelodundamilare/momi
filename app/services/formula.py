@@ -42,10 +42,6 @@ class FormulaService:
         formula_description = ai_generated_formula_details.get("formula_description", f"Formula for {product_concept}")
         ai_ingredients = ai_generated_formula_details.get("ingredients", [])
 
-        print(f"Formula Name: {formula_name}")
-        print(f"Formula Description: {formula_description}")
-        print(f"AI Ingredients: {ai_ingredients}")
-
         formula_ingredients_create = []
         for ai_ingredient in ai_ingredients:
             ingredient_name = ai_ingredient.get("name")
@@ -68,28 +64,28 @@ class FormulaService:
             else:
                 ingredient_id = existing_ingredient.id
 
-            # Find or create supplier
+            # Find or create supplier with cheapest price
             supplier_id = None
-            if suggested_supplier_name:
-                existing_suppliers = supplier_crud.get_multi(db, search=suggested_supplier_name) # Search by name
-                if existing_suppliers:
-                    supplier_id = existing_suppliers[0].id # Take the first one if multiple match
-                else:
-                    # Create new mock supplier if not found
-                    mock_supplier_data = SupplierCreate(
-                        full_name=suggested_supplier_name,
-                        avatar=self.fake.image_url(),
-                        image=self.fake.image_url(),
-                        title=self.fake.job(),
-                        availability=random.choice(["In Stock", "Limited", "Pre-order"]),
-                        description=self.fake.paragraph(nb_sentences=2),
-                        price_per_unit=round(random.uniform(5.0, 50.0), 2),
-                        moq_weight_kg=random.choice([10, 25, 50, 100]),
-                        delivery_duration=random.choice(["1-3 days", "1 week", "2 weeks"]),
-                        us_approved_status=self.fake.boolean()
-                    )
-                    created_supplier = supplier_crud.create(db, obj_in=mock_supplier_data)
-                    supplier_id = created_supplier.id
+            cheapest_supplier = supplier_crud.get_cheapest_supplier_for_ingredient(db, ingredient_id)
+
+            if cheapest_supplier:
+                supplier_id = cheapest_supplier.id
+            else:
+                # If no existing suppliers for this ingredient, create a new mock supplier
+                mock_supplier_data = SupplierCreate(
+                    full_name=self.fake.company(),
+                    avatar=self.fake.image_url(),
+                    image=self.fake.image_url(),
+                    title=self.fake.job(),
+                    availability=random.choice(["In Stock", "Limited", "Pre-order"]),
+                    description=self.fake.paragraph(nb_sentences=2),
+                    price_per_unit=round(random.uniform(5.0, 50.0), 2),
+                    moq_weight_kg=random.choice([10, 25, 50, 100]),
+                    delivery_duration=random.choice(["1-3 days", "1 week", "2 weeks"]),
+                    us_approved_status=self.fake.boolean()
+                )
+                created_supplier = supplier_crud.create(db, obj_in=mock_supplier_data)
+                supplier_id = created_supplier.id
 
             formula_ingredients_create.append(FormulaIngredientCreate(
                 ingredient_id=ingredient_id,

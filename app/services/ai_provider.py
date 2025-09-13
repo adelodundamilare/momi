@@ -294,7 +294,6 @@ class OpenAIProvider(AIProvider):
             f"    - name (string)\n"
             f"    - quantity (float)\n"
             f"    - estimated_cost (float)\n"
-            f"    - suggested_supplier_name (string)\n"
             f"Respond with a JSON object with keys: 'formula_name', 'formula_description', 'ingredients' (list of objects)."
         )
         user_prompt = f"Generate formula details for: {product_concept}"
