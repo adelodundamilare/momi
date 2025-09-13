@@ -1,14 +1,13 @@
 from pydantic import BaseModel
 from typing import List, Dict, Optional
 
-class IngredientSocialMention(BaseModel):
-    ingredient_name: str
-    social_mentions: Dict[str, int]
+class SocialPlatformMention(BaseModel):
+    count: int
     trend: str
-    change_percentage: float
+    change: str
 
 class InsightPortal(BaseModel):
-    top_ingredient_mentions: List[IngredientSocialMention]
+    top_ingredient_mentions: Dict[str, SocialPlatformMention]
     shared_product_concepts: List[str]
     company_competitors: List[str]
     assistant_recommendations: List[str]

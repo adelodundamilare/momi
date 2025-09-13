@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from app.schemas.insight_portal import InsightPortal, IngredientSocialMention
+from app.schemas.insight_portal import InsightPortal, SocialPlatformMention
 from app.schemas.utility import APIResponse
 from app.core.database import get_db
 from app.models.trend import TrendData
@@ -26,22 +26,20 @@ def get_insight_portal(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ingredient not found")
 
     # Generate simple social response data (randomly)
-    social_platforms = ["TikTok", "Instagram", "Twitter", "Reddit", "Facebook", "Pinterest"]
-    top_ingredient_mentions = []
-    for _ in range(3): # Generate data for 3 random platforms
-        platform = random.choice(social_platforms)
-        mentions = random.randint(100, 5000)
-
-        # Generate random trend and percentage
+    social_platforms = ["tiktok", "reddit", "instagram", "facebook", "x", "pinterest"]
+    top_ingredient_mentions = {}
+    for platform in social_platforms:
+        count = random.randint(1000, 10000)
         trend_direction = random.choice(["up", "down", "stable"])
-        change_percentage = round(random.uniform(0.5, 20.0), 2) # 0.5% to 20% change
+        change_percentage = round(random.uniform(0.1, 5.0), 1) # 0.1% to 5.0% change
+        change_sign = "+" if trend_direction == "up" else "-" if trend_direction == "down" else ""
+        change_str = f"{change_sign}{change_percentage}%"
 
-        top_ingredient_mentions.append(IngredientSocialMention(
-            ingredient_name=ingredient.name,
-            social_mentions={platform: mentions},
+        top_ingredient_mentions[platform] = SocialPlatformMention(
+            count=count,
             trend=trend_direction,
-            change_percentage=change_percentage
-        ))
+            change=change_str
+        )
 
     # AI Analysis for other data
     ai_generated_data = insight_portal_service.generate_portal_insights(ingredient.name)
