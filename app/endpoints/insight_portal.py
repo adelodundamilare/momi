@@ -50,7 +50,7 @@ def get_insight_portal(
             top_ingredient_mentions=top_ingredient_mentions,
             shared_product_concepts=ai_generated_data.get("shared_product_concepts", []),
             company_competitors=ai_generated_data.get("company_competitors", []),
-            assistant_recommendations=ai_generated_data.get("assistant_recommendations", []),
+            assistant_recommendations=ai_generated_data.get("assistant_recommendations", {}),
             demography_data=ai_generated_data.get("demography_data", {}),
             gender_bias=ai_generated_data.get("gender_bias", {}),
             top_geographic_locations=ai_generated_data.get("top_geographic_locations", []),

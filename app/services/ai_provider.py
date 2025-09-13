@@ -186,8 +186,8 @@ class OpenAIProvider(AIProvider):
         # 3. Assistant Recommendations
         recommendations_prompt = (
             f"You are an AI assistant providing strategic recommendations for food and beverage businesses. "
-            f"For the ingredient '{ingredient_name}', suggest 3-5 actionable recommendations for product development or market strategy. "
-            f"Respond with a JSON object where 'assistant_recommendations' is a list of strings."
+            f"For the ingredient '{ingredient_name}', provide one key opportunity and one key risk for product development or market strategy. "
+            f"Respond with a JSON object where 'assistant_recommendations' is an object with 'opportunity' (string) and 'risk' (string) keys."
         )
         recommendations_data = _call_ai_for_json(recommendations_prompt, f"Recommendations for {ingredient_name}")
 
