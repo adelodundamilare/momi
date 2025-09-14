@@ -43,17 +43,7 @@ async def generate_formula_from_concept(
     return APIResponse(message="Formula generated successfully", data=formula_response)
 
 
-@router.get("/suggest-substitutions", response_model=APIResponse)
-async def suggest_substitutions(
-    ingredient_name: str = Query(
-        ..., description="Name of the ingredient to find substitutions for"
-    )
-):
-    """
-    Suggests alternative ingredients using AI.
-    """
-    suggestions = await formula_service.suggest_ingredient_substitutions(ingredient_name)
-    return APIResponse(message="Ingredient substitutions suggested", data=suggestions)
+
 
 
 @router.get("/{formula_id}/export/excel")

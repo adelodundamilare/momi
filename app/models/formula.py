@@ -24,3 +24,4 @@ class Formula(Base):
 
     author = relationship("User")
     ingredients = relationship("FormulaIngredient")
+    marketing_copy = relationship("MarketingCopy", back_populates="formula", uselist=False)

@@ -10,12 +10,12 @@ from app.core.config import settings
 from app.schemas.chat import Message
 from app.schemas.ai_responses import (
     AISummaryAndSentiment,
-    AIIngredientSubstitutions,
     AITrendSignals,
     AIIngredientEnrichment,
     AIInsightPortalData,
     AIFormulaDetails
 )
+from app.schemas.marketing import AIMarketingCopy
 
 # Setup logger
 logger = logging.getLogger(__name__)
@@ -35,9 +35,7 @@ class AIProvider(ABC):
     async def generate_summary_and_sentiment(self, text_content: str) -> AISummaryAndSentiment:
         pass
 
-    @abstractmethod
-    async def generate_ingredient_substitutions(self, ingredient_name: str) -> AIIngredientSubstitutions:
-        pass
+    
 
     @abstractmethod
     async def generate_trend_signals(self, combined_content: str) -> AITrendSignals:
@@ -53,6 +51,14 @@ class AIProvider(ABC):
 
     @abstractmethod
     async def generate_formula_details(self, product_concept: str) -> AIFormulaDetails:
+        pass
+
+    @abstractmethod
+    async def generate_marketing_copy(self, formula_name: str, formula_description: str) -> AIMarketingCopy:
+        pass
+
+    @abstractmethod
+    async def generate_image(self, prompt: str) -> str:
         pass
 
 class OpenAIProvider(AIProvider):
@@ -127,11 +133,7 @@ class OpenAIProvider(AIProvider):
         system_prompt = self._create_prompt_from_model(AISummaryAndSentiment, instruction)
         return await self._make_ai_call(system_prompt, text_content, AISummaryAndSentiment)
 
-    async def generate_ingredient_substitutions(self, ingredient_name: str) -> AIIngredientSubstitutions:
-        instruction = "You are an expert in food ingredient science. For the given ingredient, suggest 3-5 common and functionally similar alternatives."
-        system_prompt = self._create_prompt_from_model(AIIngredientSubstitutions, instruction)
-        user_prompt = f"The ingredient is: {ingredient_name}"
-        return await self._make_ai_call(system_prompt, user_prompt, AIIngredientSubstitutions)
+    
 
     async def generate_trend_signals(self, combined_content: str) -> AITrendSignals:
         instruction = "You are an expert in food market trends. Analyze the provided social media posts and identify trend signals. A trend signal is an ingredient, product, or concept with an upward (^) or downward (v) trend."
@@ -155,3 +157,25 @@ class OpenAIProvider(AIProvider):
         system_prompt = self._create_prompt_from_model(AIFormulaDetails, instruction)
         user_prompt = f"The product concept is: {product_concept}"
         return await self._make_ai_call(system_prompt, user_prompt, AIFormulaDetails)
+
+    async def generate_marketing_copy(self, formula_name: str, formula_description: str) -> AIMarketingCopy:
+        instruction = "You are an expert in product marketing for the food and beverage industry. Based on the formula name and description, generate compelling marketing copy."
+        system_prompt = self._create_prompt_from_model(AIMarketingCopy, instruction)
+        user_prompt = f"Formula Name: {formula_name}\nFormula Description: {formula_description}"
+        return await self._make_ai_call(system_prompt, user_prompt, AIMarketingCopy)
+
+    async def generate_image(self, prompt: str) -> str:
+        """Generates an image using DALL-E 3 and returns the URL."""
+        try:
+            response = await self.client.images.generate(
+                model="dall-e-3",
+                prompt=prompt,
+                n=1,
+                size="1024x1024",
+                quality="standard",
+                response_format="url"
+            )
+            return response.data[0].url
+        except openai.APIError as e:
+            logger.error(f"OpenAI DALL-E error: {e}")
+            raise AIProviderError("Failed to generate image.") from e

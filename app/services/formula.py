@@ -100,12 +100,7 @@ class FormulaService:
     def get_formula(self, db: Session, id: int):
         return formula_crud.get(db, id=id)
 
-    async def suggest_ingredient_substitutions(self, ingredient_name: str) -> List[str]:
-        try:
-            substitutions = await self.ai_provider.generate_ingredient_substitutions(ingredient_name)
-            return substitutions.alternatives
-        except AIProviderError as e:
-            raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=f"AI service failed to suggest substitutions: {e}")
+    
 
     def export_formula_excel(self, db: Session, formula_id: int) -> BytesIO:
         formula = self.get_formula(db, id=formula_id)
