@@ -5,8 +5,14 @@ from app.schemas.formula import FormulaCreate, FormulaIngredientCreate
 from app.schemas.ingredient import IngredientCreate
 from app.models.user import User
 from fastapi import HTTPException, status, BackgroundTasks
-import json
+
 from typing import List, Dict, Any
+from io import BytesIO
+
+from openpyxl import Workbook
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib import colors
 
 from app.services.ai_provider import AIProvider, OpenAIProvider # Import the new provider
 from app.services.ingredient import IngredientService
@@ -22,17 +28,7 @@ class FormulaService:
         self.ingredient_service = IngredientService()
         self.fake = Faker()
 
-    def create_formula(self, db: Session, *, formula_data: FormulaCreate, current_user: User):
-        # Validate that all ingredients exist before creating the formula
-        for item in formula_data.ingredients:
-            ingredient = ingredient_crud.get(db, id=item.ingredient_id)
-            if not ingredient:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail=f"Ingredient with id {item.ingredient_id} not found."
-                )
-
-        return formula_crud.create_with_author(db, obj_in=formula_data, author_id=current_user.id)
+    
 
     def generate_formula_from_concept(self, db: Session, product_concept: str, current_user: Any, background_tasks: BackgroundTasks) -> Any:
         # 1. Call AI to get ingredients, quantities, and estimated costs
@@ -113,34 +109,90 @@ class FormulaService:
     def suggest_ingredient_substitutions(self, ingredient_name: str) -> List[str]:
         return self.ai_provider.generate_ingredient_substitutions(ingredient_name)
 
-    def generate_mock_nutrition_panel(self, formula_id: int) -> Dict[str, Any]:
-        """
-        Generates a mock Nutrition Facts Panel for a given formula.
-        (No real calculations at MVP stage - static template).
-        """
-        # In a real scenario, you'd fetch formula details and ingredients here
-        # For MVP, we return a static template.
-        return {
-            "serving_size": "1 scoop (30g)",
-            "servings_per_container": "30",
-            "amount_per_serving": {
-                "calories": "120",
-                "total_fat": "2g",
-                "saturated_fat": "1g",
-                "trans_fat": "0g",
-                "cholesterol": "5mg",
-                "sodium": "100mg",
-                "total_carbohydrate": "5g",
-                "dietary_fiber": "1g",
-                "total_sugars": "2g",
-                "added_sugars": "0g",
-                "protein": "20g"
-            },
-            "vitamins_minerals": {
-                "vitamin_d": "0mcg (0% DV)",
-                "calcium": "130mg (10% DV)",
-                "iron": "1.8mg (10% DV)",
-                "potassium": "230mg (5% DV)"
-            },
-            "ingredients_list": "Protein Blend (Whey Protein Concentrate, Whey Protein Isolate), Natural Flavors, Xanthan Gum, Stevia Extract."
-        }
+    def export_formula_excel(self, db: Session, formula_id: int) -> BytesIO:
+        formula = self.get_formula(db, id=formula_id)
+        if not formula:
+            raise HTTPException(status_code=404, detail="Formula not found")
+
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Formula"
+
+        ws.append(["Name", formula.name])
+        ws.append(["Description", formula.description])
+        ws.append([])
+        ws.append(["Ingredients"])
+        ws.append(["Name", "Quantity", "Supplier", "Price per Unit", "Cost"])
+
+        for item in formula.ingredients:
+            ingredient = item.ingredient
+            supplier = item.supplier
+            cost = item.quantity * supplier.price_per_unit if supplier else 0
+            ws.append(
+                [
+                    ingredient.name,
+                    item.quantity,
+                    supplier.full_name if supplier else "N/A",
+                    supplier.price_per_unit if supplier else "N/A",
+                    cost,
+                ]
+            )
+
+        ws.append([])
+        ws.append(["Total Cost", formula.total_cost])
+
+        excel_file = BytesIO()
+        wb.save(excel_file)
+        excel_file.seek(0)
+
+        return excel_file
+
+    def export_formula_pdf(self, db: Session, formula_id: int) -> BytesIO:
+        formula = self.get_formula(db, id=formula_id)
+        if not formula:
+            raise HTTPException(status_code=404, detail="Formula not found")
+
+        pdf_buffer = BytesIO()
+        doc = SimpleDocTemplate(pdf_buffer)
+        elements = []
+        styles = getSampleStyleSheet()
+
+        elements.append(Paragraph(f"Formula: {formula.name}", styles['h1']))
+        elements.append(Paragraph(f"Description: {formula.description}", styles['body']))
+        elements.append(Paragraph("<br/><br/>", styles['body']))
+
+        data = [["Ingredient", "Quantity", "Supplier", "Price per Unit", "Cost"]]
+        for item in formula.ingredients:
+            ingredient = item.ingredient
+            supplier = item.supplier
+            cost = item.quantity * supplier.price_per_unit if supplier else 0
+            data.append(
+                [
+                    ingredient.name,
+                    item.quantity,
+                    supplier.full_name if supplier else "N/A",
+                    supplier.price_per_unit if supplier else "N/A",
+                    cost,
+                ]
+            )
+        
+        data.append(["", "", "", "Total Cost", formula.total_cost])
+
+        table = Table(data)
+        style = TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
+                ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                ("BOTTOMPADDING", (0, 0), (-1, 0), 12),
+                ("BACKGROUND", (0, 1), (-1, -2), colors.beige),
+                ("GRID", (0, 0), (-1, -1), 1, colors.black),
+            ]
+        )
+        table.setStyle(style)
+        elements.append(table)
+
+        doc.build(elements)
+        pdf_buffer.seek(0)
+        return pdf_buffer
