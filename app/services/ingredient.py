@@ -2,11 +2,14 @@ from sqlalchemy.orm import Session
 from app.crud.ingredient import ingredient as ingredient_crud
 from app.schemas.ingredient import IngredientCreate, IngredientUpdate
 from fastapi import HTTPException, status
-from app.services.ai_provider import AIProvider
+from app.services.ai_provider import AIProvider, AIProviderError
 from faker import Faker
 import random
+import logging
 from app.crud.supplier import supplier as supplier_crud
 from app.schemas.supplier import SupplierCreate
+
+logger = logging.getLogger(__name__)
 
 class IngredientService:
     def __init__(self, ai_provider: AIProvider):
@@ -56,22 +59,28 @@ class IngredientService:
     async def enrich_ingredient_with_ai(self, db: Session, ingredient_id: int):
         ingredient = self.get_ingredient(db, ingredient_id)
         if not ingredient:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ingredient not found")
+            # This should not happen if called from a valid context, but good to have.
+            logger.warning(f"Attempted to enrich non-existent ingredient with ID: {ingredient_id}")
+            return
 
-        ai_generated_data = await self.ai_provider.generate_ingredient_enrichment(ingredient.name)
-        if not ai_generated_data:
-            # Handle the case where AI fails to generate data
-            return ingredient
+        try:
+            ai_generated_data = await self.ai_provider.generate_ingredient_enrichment(ingredient.name)
+            if not ai_generated_data:
+                logger.warning(f"AI provider returned no data for ingredient enrichment: {ingredient.name}")
+                return ingredient
 
-        # Update the ingredient with AI-generated data
-        ingredient_update_data = IngredientUpdate(
-            description=ai_generated_data.description,
-            benefits=ai_generated_data.benefits,
-            claims=ai_generated_data.claims,
-            regulatory_notes=ai_generated_data.regulatory_notes,
-            function=ai_generated_data.function,
-            weight=ai_generated_data.weight,
-            unit=ai_generated_data.unit,
-            allergies=ai_generated_data.allergies,
-        )
-        return ingredient_crud.update(db, db_obj=ingredient, obj_in=ingredient_update_data)
+            ingredient_update_data = IngredientUpdate(
+                description=ai_generated_data.description,
+                benefits=ai_generated_data.benefits,
+                claims=ai_generated_data.claims,
+                regulatory_notes=ai_generated_data.regulatory_notes,
+                function=ai_generated_data.function,
+                weight=ai_generated_data.weight,
+                unit=ai_generated_data.unit,
+                allergies=ai_generated_data.allergies,
+            )
+            return ingredient_crud.update(db, db_obj=ingredient, obj_in=ingredient_update_data)
+        except AIProviderError as e:
+            # Log the error but don't let it crash the parent process (e.g., formula generation)
+            logger.error(f"AI enrichment failed for ingredient '{ingredient.name}' (ID: {ingredient_id}): {e}")
+            return ingredient # Return the original ingredient

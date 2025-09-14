@@ -52,3 +52,4 @@ uvicorn==0.34.0
 python-slugify==8.0.1
 openpyxl==3.1.2
 reportlab==4.0.4
+tenacity==8.2.3

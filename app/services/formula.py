@@ -14,7 +14,7 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib import colors
 
-from app.services.ai_provider import AIProvider, OpenAIProvider
+from app.services.ai_provider import AIProvider, OpenAIProvider, AIProviderError
 from app.services.ingredient import IngredientService
 from app.utils.text_utils import generate_slug
 from app.crud.supplier import supplier as supplier_crud
@@ -29,9 +29,10 @@ class FormulaService:
         self.fake = Faker()
 
     async def generate_formula_from_concept(self, db: Session, product_concept: str, current_user: User) -> Any:
-        ai_formula_details = await self.ai_provider.generate_formula_details(product_concept)
-        if not ai_formula_details:
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to generate formula details from AI.")
+        try:
+            ai_formula_details = await self.ai_provider.generate_formula_details(product_concept)
+        except AIProviderError as e:
+            raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=f"AI service failed to generate formula details: {e}")
 
         formula_ingredients_create = []
         enrichment_tasks = []
@@ -50,7 +51,6 @@ class FormulaService:
                 new_ingredient_data = IngredientCreate(name=ingredient_name, slug=ingredient_slug)
                 created_ingredient = self.ingredient_service.create_ingredient(db, ingredient_data=new_ingredient_data)
                 ingredient_id = created_ingredient.id
-                # Schedule AI enrichment to run concurrently
                 enrichment_tasks.append(self.ingredient_service.enrich_ingredient_with_ai(db, ingredient_id=created_ingredient.id))
             else:
                 ingredient_id = existing_ingredient.id
@@ -81,9 +81,12 @@ class FormulaService:
                 supplier_id=supplier_id
             ))
 
-        # Run all enrichment tasks concurrently
         if enrichment_tasks:
-            await asyncio.gather(*enrichment_tasks)
+            try:
+                await asyncio.gather(*enrichment_tasks)
+            except AIProviderError as e:
+                # Log the error but don't block formula creation
+                print(f"Warning: AI enrichment failed for some ingredients: {e}")
 
         formula_create_data = FormulaCreate(
             name=ai_formula_details.formula_name,
@@ -98,8 +101,11 @@ class FormulaService:
         return formula_crud.get(db, id=id)
 
     async def suggest_ingredient_substitutions(self, ingredient_name: str) -> List[str]:
-        substitutions = await self.ai_provider.generate_ingredient_substitutions(ingredient_name)
-        return substitutions.alternatives if substitutions else []
+        try:
+            substitutions = await self.ai_provider.generate_ingredient_substitutions(ingredient_name)
+            return substitutions.alternatives
+        except AIProviderError as e:
+            raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=f"AI service failed to suggest substitutions: {e}")
 
     def export_formula_excel(self, db: Session, formula_id: int) -> BytesIO:
         formula = self.get_formula(db, id=formula_id)
