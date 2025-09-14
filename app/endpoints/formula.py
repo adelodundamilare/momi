@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
@@ -7,11 +7,12 @@ from app.models.user import User
 from app.schemas.formula import Formula, FormulaGenerationRequest
 from app.schemas.utility import APIResponse
 from app.services.formula import FormulaService
+from app.services.ai_provider import OpenAIProvider
 from app.utils.deps import get_current_user
 
 router = APIRouter()
 
-formula_service = FormulaService()
+formula_service = FormulaService(ai_provider=OpenAIProvider())
 
 
 @router.get("/{id}", response_model=APIResponse)
@@ -27,24 +28,23 @@ def read_formula(*, db: Session = Depends(get_db), id: int):
 
 
 @router.post("/generate-from-concept", response_model=APIResponse)
-def generate_formula_from_concept(
+async def generate_formula_from_concept(
     request: FormulaGenerationRequest,
-    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     """
     Generates a formula based on a product concept using AI.
     """
-    generated_formula_data = formula_service.generate_formula_from_concept(
-        db, request.product_concept, current_user, background_tasks
+    generated_formula_data = await formula_service.generate_formula_from_concept(
+        db, request.product_concept, current_user
     )
     formula_response = Formula.from_orm(generated_formula_data)
     return APIResponse(message="Formula generated successfully", data=formula_response)
 
 
 @router.get("/suggest-substitutions", response_model=APIResponse)
-def suggest_substitutions(
+async def suggest_substitutions(
     ingredient_name: str = Query(
         ..., description="Name of the ingredient to find substitutions for"
     )
@@ -52,7 +52,7 @@ def suggest_substitutions(
     """
     Suggests alternative ingredients using AI.
     """
-    suggestions = formula_service.suggest_ingredient_substitutions(ingredient_name)
+    suggestions = await formula_service.suggest_ingredient_substitutions(ingredient_name)
     return APIResponse(message="Ingredient substitutions suggested", data=suggestions)
 
 

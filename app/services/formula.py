@@ -4,17 +4,17 @@ from app.crud.ingredient import ingredient as ingredient_crud
 from app.schemas.formula import FormulaCreate, FormulaIngredientCreate
 from app.schemas.ingredient import IngredientCreate
 from app.models.user import User
-from fastapi import HTTPException, status, BackgroundTasks
-
-from typing import List, Dict, Any
+from fastapi import HTTPException, status
+from typing import List, Any
 from io import BytesIO
+import asyncio
 
 from openpyxl import Workbook
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib import colors
 
-from app.services.ai_provider import AIProvider, OpenAIProvider # Import the new provider
+from app.services.ai_provider import AIProvider, OpenAIProvider
 from app.services.ingredient import IngredientService
 from app.utils.text_utils import generate_slug
 from app.crud.supplier import supplier as supplier_crud
@@ -23,26 +23,22 @@ from faker import Faker
 import random
 
 class FormulaService:
-    def __init__(self, ai_provider: AIProvider = OpenAIProvider()): # Inject the provider
+    def __init__(self, ai_provider: AIProvider = OpenAIProvider()):
         self.ai_provider = ai_provider
-        self.ingredient_service = IngredientService()
+        self.ingredient_service = IngredientService(ai_provider)
         self.fake = Faker()
 
-    
-
-    def generate_formula_from_concept(self, db: Session, product_concept: str, current_user: Any, background_tasks: BackgroundTasks) -> Any:
-        # 1. Call AI to get ingredients, quantities, and estimated costs
-        ai_generated_formula_details = self.ai_provider.generate_formula_details(product_concept)
-
-        formula_name = ai_generated_formula_details.get("formula_name", product_concept)
-        formula_description = ai_generated_formula_details.get("formula_description", f"Formula for {product_concept}")
-        ai_ingredients = ai_generated_formula_details.get("ingredients", [])
+    async def generate_formula_from_concept(self, db: Session, product_concept: str, current_user: User) -> Any:
+        ai_formula_details = await self.ai_provider.generate_formula_details(product_concept)
+        if not ai_formula_details:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to generate formula details from AI.")
 
         formula_ingredients_create = []
-        for ai_ingredient in ai_ingredients:
-            ingredient_name = ai_ingredient.get("name")
-            quantity = ai_ingredient.get("quantity")
-            suggested_supplier_name = ai_ingredient.get("suggested_supplier_name")
+        enrichment_tasks = []
+
+        for ai_ingredient in ai_formula_details.ingredients:
+            ingredient_name = ai_ingredient.name
+            quantity = ai_ingredient.quantity
 
             if not ingredient_name or quantity is None:
                 continue
@@ -51,24 +47,19 @@ class FormulaService:
             existing_ingredient = ingredient_crud.get_by_slug(db, slug=ingredient_slug)
 
             if not existing_ingredient:
-                # Create new ingredient (this will trigger supplier generation)
-                print(f"Creating new ingredient: {ingredient_name}")
                 new_ingredient_data = IngredientCreate(name=ingredient_name, slug=ingredient_slug)
                 created_ingredient = self.ingredient_service.create_ingredient(db, ingredient_data=new_ingredient_data)
                 ingredient_id = created_ingredient.id
-                # AI Enrichment for new ingredient
-                background_tasks.add_task(self.ingredient_service.enrich_ingredient_with_ai, db, ingredient_id=created_ingredient.id)
+                # Schedule AI enrichment to run concurrently
+                enrichment_tasks.append(self.ingredient_service.enrich_ingredient_with_ai(db, ingredient_id=created_ingredient.id))
             else:
                 ingredient_id = existing_ingredient.id
 
-            # Find or create supplier with cheapest price
             supplier_id = None
             cheapest_supplier = supplier_crud.get_cheapest_supplier_for_ingredient(db, ingredient_id)
-
             if cheapest_supplier:
                 supplier_id = cheapest_supplier.id
             else:
-                # If no existing suppliers for this ingredient, create a new mock supplier
                 mock_supplier_data = SupplierCreate(
                     full_name=self.fake.company(),
                     avatar=self.fake.image_url(),
@@ -87,27 +78,28 @@ class FormulaService:
             formula_ingredients_create.append(FormulaIngredientCreate(
                 ingredient_id=ingredient_id,
                 quantity=quantity,
-                supplier_id=supplier_id # Pass supplier_id here
+                supplier_id=supplier_id
             ))
 
-        # 2. Create the Formula entry and save to DB
+        # Run all enrichment tasks concurrently
+        if enrichment_tasks:
+            await asyncio.gather(*enrichment_tasks)
+
         formula_create_data = FormulaCreate(
-            name=formula_name,
-            description=formula_description,
+            name=ai_formula_details.formula_name,
+            description=ai_formula_details.formula_description,
             product_concept=product_concept,
             ingredients=formula_ingredients_create,
         )
 
-        # Save the formula to the database
-        created_formula = formula_crud.create_with_author(db, obj_in=formula_create_data, author_id=current_user.id)
-
-        return created_formula
+        return formula_crud.create_with_author(db, obj_in=formula_create_data, author_id=current_user.id)
 
     def get_formula(self, db: Session, id: int):
         return formula_crud.get(db, id=id)
 
-    def suggest_ingredient_substitutions(self, ingredient_name: str) -> List[str]:
-        return self.ai_provider.generate_ingredient_substitutions(ingredient_name)
+    async def suggest_ingredient_substitutions(self, ingredient_name: str) -> List[str]:
+        substitutions = await self.ai_provider.generate_ingredient_substitutions(ingredient_name)
+        return substitutions.alternatives if substitutions else []
 
     def export_formula_excel(self, db: Session, formula_id: int) -> BytesIO:
         formula = self.get_formula(db, id=formula_id)
@@ -127,7 +119,7 @@ class FormulaService:
         for item in formula.ingredients:
             ingredient = item.ingredient
             supplier = item.supplier
-            cost = item.quantity * supplier.price_per_unit if supplier else 0
+            cost = item.quantity * supplier.price_per_unit if supplier and supplier.price_per_unit else 0
             ws.append(
                 [
                     ingredient.name,
@@ -144,7 +136,6 @@ class FormulaService:
         excel_file = BytesIO()
         wb.save(excel_file)
         excel_file.seek(0)
-
         return excel_file
 
     def export_formula_pdf(self, db: Session, formula_id: int) -> BytesIO:
@@ -165,7 +156,7 @@ class FormulaService:
         for item in formula.ingredients:
             ingredient = item.ingredient
             supplier = item.supplier
-            cost = item.quantity * supplier.price_per_unit if supplier else 0
+            cost = item.quantity * supplier.price_per_unit if supplier and supplier.price_per_unit else 0
             data.append(
                 [
                     ingredient.name,

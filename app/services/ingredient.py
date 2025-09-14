@@ -2,14 +2,15 @@ from sqlalchemy.orm import Session
 from app.crud.ingredient import ingredient as ingredient_crud
 from app.schemas.ingredient import IngredientCreate, IngredientUpdate
 from fastapi import HTTPException, status
-from app.services.ai_provider import AIProvider, OpenAIProvider
+from app.services.ai_provider import AIProvider
 from faker import Faker
 import random
 from app.crud.supplier import supplier as supplier_crud
 from app.schemas.supplier import SupplierCreate
 
 class IngredientService:
-    def __init__(self):
+    def __init__(self, ai_provider: AIProvider):
+        self.ai_provider = ai_provider
         self.fake = Faker()
 
     def create_ingredient(self, db: Session, *, ingredient_data: IngredientCreate):
@@ -37,7 +38,7 @@ class IngredientService:
                 us_approved_status=self.fake.boolean()
             )
             created_supplier = supplier_crud.create(db, obj_in=mock_supplier_data)
-            new_ingredient.suppliers.append(created_supplier) # Establish relationship
+            new_ingredient.suppliers.append(created_supplier)
 
         db.commit()
         db.refresh(new_ingredient)
@@ -52,25 +53,25 @@ class IngredientService:
     def get_ingredients(self, db: Session, skip: int = 0, limit: int = 100, search: str | None = None):
         return ingredient_crud.get_multi(db, skip=skip, limit=limit, search=search)
 
-    def enrich_ingredient_with_ai(self, db: Session, ingredient_id: int, ai_provider: AIProvider = OpenAIProvider()):
+    async def enrich_ingredient_with_ai(self, db: Session, ingredient_id: int):
         ingredient = self.get_ingredient(db, ingredient_id)
         if not ingredient:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ingredient not found")
 
-        # Generate AI-powered description, benefits, claims, regulatory notes, function
-        ai_generated_data = ai_provider.generate_ingredient_enrichment(ingredient.name)
+        ai_generated_data = await self.ai_provider.generate_ingredient_enrichment(ingredient.name)
+        if not ai_generated_data:
+            # Handle the case where AI fails to generate data
+            return ingredient
 
         # Update the ingredient with AI-generated data
         ingredient_update_data = IngredientUpdate(
-            description=ai_generated_data.get("description"),
-            benefits=ai_generated_data.get("benefits"),
-            claims=ai_generated_data.get("claims"),
-            regulatory_notes=ai_generated_data.get("regulatory_notes"),
-            function=ai_generated_data.get("function"),
-            weight=ai_generated_data.get("weight"),
-            unit=ai_generated_data.get("unit"),
-            allergies=ai_generated_data.get("allergies"),
+            description=ai_generated_data.description,
+            benefits=ai_generated_data.benefits,
+            claims=ai_generated_data.claims,
+            regulatory_notes=ai_generated_data.regulatory_notes,
+            function=ai_generated_data.function,
+            weight=ai_generated_data.weight,
+            unit=ai_generated_data.unit,
+            allergies=ai_generated_data.allergies,
         )
         return ingredient_crud.update(db, db_obj=ingredient, obj_in=ingredient_update_data)
-
-

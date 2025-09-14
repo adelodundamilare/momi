@@ -6,6 +6,7 @@ from app.core.database import get_db
 from app.schemas.ingredient import Ingredient, IngredientCreate
 from app.models.ingredient import Ingredient as IngredientModel
 from app.services.ingredient import IngredientService
+from app.services.ai_provider import OpenAIProvider
 from app.schemas.utility import APIResponse
 
 from app.models.trend import TrendData
@@ -18,7 +19,7 @@ logger = setup_logger("ingredient_api", "ingredient.log")
 
 router = APIRouter()
 
-ingredient_service = IngredientService()
+ingredient_service = IngredientService(ai_provider=OpenAIProvider())
 
 @router.post("/", response_model=APIResponse)
 def create_ingredient(
