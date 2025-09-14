@@ -1,11 +1,14 @@
-from sqlalchemy.orm import Session
-from typing import List
+from sqlalchemy.orm import Session, joinedload
+from typing import List, Optional
 
 from app.crud.base import CRUDBase
 from app.models.formula import Formula, FormulaIngredient
 from app.schemas.formula import FormulaCreate, FormulaUpdate
 
 class CRUDFormula(CRUDBase[Formula, FormulaCreate, FormulaUpdate]):
+    def get(self, db: Session, id: int) -> Optional[Formula]:
+        return db.query(self.model).options(joinedload(self.model.ingredients)).filter(self.model.id == id).first()
+
     def create_with_author(self, db: Session, *, obj_in: FormulaCreate, author_id: int) -> Formula:
         # Create the main Formula object
         formula_data = obj_in.dict(exclude={"ingredients"})
@@ -19,12 +22,12 @@ class CRUDFormula(CRUDBase[Formula, FormulaCreate, FormulaUpdate]):
             db_formula_ingredient = FormulaIngredient(
                 formula_id=db_formula.id,
                 ingredient_id=ingredient_in.ingredient_id,
-                quantity=ingredient_in.quantity
+                quantity=ingredient_in.quantity,
+                supplier_id=ingredient_in.supplier_id
             )
             db.add(db_formula_ingredient)
         
         db.commit()
-        db.refresh(db_formula)
-        return db_formula
+        return self.get(db, id=db_formula.id)
 
 formula = CRUDFormula(Formula)

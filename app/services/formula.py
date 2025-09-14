@@ -56,6 +56,7 @@ class FormulaService:
 
             if not existing_ingredient:
                 # Create new ingredient (this will trigger supplier generation)
+                print(f"Creating new ingredient: {ingredient_name}")
                 new_ingredient_data = IngredientCreate(name=ingredient_name, slug=ingredient_slug)
                 created_ingredient = self.ingredient_service.create_ingredient(db, ingredient_data=new_ingredient_data)
                 ingredient_id = created_ingredient.id
