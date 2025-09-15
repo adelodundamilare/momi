@@ -5,7 +5,7 @@ from app.services.ai_provider import AIProvider, OpenAIProvider, AIProviderError
 from app.crud.formula import formula as formula_crud
 from app.crud.marketing import marketing_copy as marketing_copy_crud
 from app.models.marketing import MarketingCopy
-from app.schemas.marketing import MarketingCopy as MarketingCopySchema
+from app.schemas.marketing import MarketingCopyCreate
 
 class MarketingService:
     def __init__(self, ai_provider: AIProvider = OpenAIProvider()):
@@ -33,7 +33,7 @@ class MarketingService:
         except AIProviderError as e:
             raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=f"AI service failed to generate product mockup: {e}")
 
-        marketing_copy_data = MarketingCopySchema(
+        marketing_copy_data = MarketingCopyCreate(
             **ai_marketing_copy.dict(),
             formula_id=formula_id,
             product_mockup_url=image_url
@@ -45,7 +45,7 @@ class MarketingService:
         formula = formula_crud.get(db, id=formula_id)
         if not formula:
             raise HTTPException(status_code=404, detail="Formula not found")
-        
+
         marketing_copy = formula.marketing_copy
         if not marketing_copy:
             raise HTTPException(status_code=404, detail="Marketing copy not found for this formula. Please generate it first.")
