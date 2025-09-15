@@ -13,7 +13,14 @@ class CRUDMarketingCopy(CRUDBase[MarketingCopyModel, MarketingCopyCreate, Market
             key_features=obj_in.key_features,
             marketing_copy=obj_in.marketing_copy,
             product_mockup_url=obj_in.product_mockup_url,
-            formula_id=obj_in.formula_id
+            formula_id=obj_in.formula_id,
+            nutritional_facts=[fact.dict() for fact in obj_in.nutritional_facts],
+            estimated_cost_per_unit=obj_in.estimated_cost_per_unit.dict(),
+            batch_cost=obj_in.batch_cost.dict(),
+            potential_savings=obj_in.potential_savings.dict(),
+            suggestions=obj_in.suggestions,
+            allergen_alerts=obj_in.allergen_alerts.dict(),
+            sustainability=obj_in.sustainability.dict()
         )
         db.add(db_obj)
         db.commit()
