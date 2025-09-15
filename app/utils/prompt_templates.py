@@ -66,6 +66,7 @@ INGREDIENT_ENRICHMENT_INSTRUCTION = "You are an expert in food ingredients. For 
 INSIGHT_PORTAL_INSTRUCTION = "You are an AI assistant specializing in food and beverage market analysis. For the ingredient '{ingredient_name}', generate a comprehensive market insight report."
 FORMULA_DETAILS_INSTRUCTION = "You are an AI assistant for food and beverage formula development. For the given product concept, generate a plausible formula."
 MARKETING_COPY_INSTRUCTION = "You are an expert in product marketing for the food and beverage industry. Based on the formula name and description, generate compelling marketing copy. This should include a product name, tagline, key features, a marketing paragraph, a list of common nutritional facts (like Total Fat, Sodium, Carbohydrates, and Protein) with their amount per serving and percentage of daily value, estimated cost per unit and batch, potential savings, suggestions for improvement, allergen alerts, and a sustainability score with contributing factors."
+TREND_DATA_EXTRACTION_INSTRUCTION = "You are an expert trend analyst. Analyze the provided article content and extract the main trend data points. Focus on identifying the core trend, summarizing the article, extracting relevant keywords, categorizing the trend, determining its sentiment, and assigning an impact score from 1 to 10."
 PRODUCT_CATEGORIZATION_SYSTEM_PROMPT = (
     "You are a product categorization expert for the consumer goods industry. "
     "Based on the product name and description, classify the product into one of the following categories: "

@@ -6,13 +6,18 @@ class AISummaryAndSentiment(BaseModel):
     summary: str
     sentiment: str
 
-# --- For generate_ingredient_substitutions ---
-class AIIngredientSubstitutions(BaseModel):
-    alternatives: List[str]
-
 # --- For generate_trend_signals ---
 class AITrendSignals(BaseModel):
     signals: List[str]
+
+# --- For AI-powered trend extraction ---
+class AITrendData(BaseModel):
+    title: str
+    summary: str
+    keywords: List[str]
+    category: str
+    sentiment: str
+    impact_score: int = Field(..., ge=1, le=10, description="Impact score from 1 to 10, 10 being highest.")
 
 # --- For generate_ingredient_enrichment ---
 class AIIngredientEnrichment(BaseModel):

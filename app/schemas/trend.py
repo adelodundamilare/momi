@@ -1,19 +1,18 @@
-from pydantic import BaseModel, HttpUrl
+from pydantic import BaseModel, HttpUrl, Field
 from typing import Optional, List, Dict
 from datetime import datetime
 
 # Shared properties
 class TrendDataBase(BaseModel):
-    source_url: HttpUrl
-    category: Optional[str] = None
-    tags: Optional[List[str]] = None
-    socials: Optional[Dict[str, int]] = None
+    link: HttpUrl
+    title: str
+    description: Optional[str] = None
+    pub_date: Optional[datetime] = None
     image: Optional[str] = None
 
 # Properties to receive on item creation
 class TrendDataCreate(TrendDataBase):
-    title: str
-    content: str
+    pass
 
 # Schema for initiating a scrape
 class ScrapeRequest(BaseModel):
@@ -24,7 +23,6 @@ class ScrapeRequest(BaseModel):
 # Properties shared by models stored in DB
 class TrendDataInDBBase(TrendDataBase):
     id: int
-    title: Optional[str] = None
     scraped_at: datetime
 
     class Config:

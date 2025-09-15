@@ -13,7 +13,8 @@ from app.schemas.ai_responses import (
     AITrendSignals,
     AIIngredientEnrichment,
     AIInsightPortalData,
-    AIFormulaDetails
+    AIFormulaDetails,
+    AITrendData
 )
 from app.schemas.marketing import AIMarketingCopy
 from app.utils import prompt_templates
@@ -36,7 +37,7 @@ class AIProvider(ABC):
     async def generate_summary_and_sentiment(self, text_content: str) -> AISummaryAndSentiment:
         pass
 
-    
+
 
     @abstractmethod
     async def generate_trend_signals(self, combined_content: str) -> AITrendSignals:
@@ -64,6 +65,10 @@ class AIProvider(ABC):
 
     @abstractmethod
     async def categorize_product(self, product_name: str, product_description: str) -> str:
+        pass
+
+    @abstractmethod
+    async def extract_trend_data(self, article_title: str, article_content: str) -> AITrendData:
         pass
 
 class OpenAIProvider(AIProvider):
@@ -196,3 +201,9 @@ class OpenAIProvider(AIProvider):
             logger.error(f"An unexpected error occurred during product categorization: {e}")
             # Fallback to a generic category
             return "Other"
+
+    async def extract_trend_data(self, article_title: str, article_content: str) -> AITrendData:
+        instruction = prompt_templates.TREND_DATA_EXTRACTION_INSTRUCTION
+        system_prompt = self._create_prompt_from_model(AITrendData, instruction)
+        user_prompt = f"Article Title: {article_title}\nArticle Content: {article_content}"
+        return await self._make_ai_call(system_prompt, user_prompt, AITrendData)

@@ -40,6 +40,10 @@ class Settings(BaseSettings):
     # OpenAI
     OPENAI_API_KEY: str
 
+    # ScraperAPI Configuration
+    SCRAPER_API_KEY: Optional[str] = None
+    SCRAPER_API_BASE_URL: str = "http://api.scraperapi.com/"
+
     # OAuth2
     GOOGLE_CLIENT_ID: Optional[str] = None
     GOOGLE_CLIENT_SECRET: Optional[str] = None

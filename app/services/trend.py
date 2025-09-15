@@ -1,83 +1,57 @@
 from sqlalchemy.orm import Session
-import requests
-from bs4 import BeautifulSoup
-from typing import List
+from typing import List, Dict, Any, Optional
+import asyncio
+from datetime import datetime
 
 from app.crud.trend import trend as trend_crud
 from app.schemas.trend import TrendDataCreate
+from app.services.scraper import Scraper # Import the Scraper interface
 
 class TrendService:
-    def scrape_and_save(self, db: Session, *, url: str, category: str | None, tags: List[str] | None):
-        """
-        Scrapes a URL, extracts title and content, and saves to the database.
-        This function is intended to be run in a background task.
-        """
-        try:
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-            }
-            response = requests.get(url, headers=headers, timeout=10)
-            response.raise_for_status() # Raise an exception for bad status codes
+    TRENDHUNTER_RSS_FEED_URL = "https://www.trendhunter.com/rss/category/Food-Trends"
 
-            soup = BeautifulSoup(response.content, 'html.parser')
+    def __init__(self, scraper: Scraper): # Restore scraper dependency
+        self.scraper = scraper
 
-            # --- Placeholder for site-specific scraping logic ---
-            # For example, if url is from Food Dive, you might have specific selectors:
-            # if "fooddive.com" in url:
-            #     title = soup.find("h1", class_="headline").text.strip()
-            #     content_div = soup.find("div", class_="article-body")
-            #     content = content_div.get_text(separator="\n", strip=True)
-            # else:
-            # --- End Placeholder ---
+    async def fetch_and_process_trends(self, db: Session): # Remove scraper from method signature
+        print(f"Fetching articles from RSS feed: {self.TRENDHUNTER_RSS_FEED_URL}")
+        articles = self.scraper.fetch_food_trends(self.TRENDHUNTER_RSS_FEED_URL) # Correct method call
+        print(f"Found {len(articles)} articles")
+        return
 
-            # A simple (naive) approach to get title and content
-            title = soup.title.string if soup.title else 'No Title Found'
-            
-            # Extract featured image URL
-            image_url = None
-            og_image = soup.find("meta", property="og:image")
-            if og_image and og_image.get("content"):
-                image_url = og_image["content"]
-            else:
-                # Fallback to finding the first significant image in the body
-                main_content = soup.find("body") # Or a more specific content div
-                if main_content:
-                    first_img = main_content.find("img")
-                    if first_img and first_img.get("src"):
-                        image_url = first_img["src"]
+        for entry in articles:
+            print(entry, 'entry')
+            link = entry.link
+            title = entry.title
+            description = getattr(entry, 'summary', None)
+            pub_date_str = getattr(entry, 'published', None)
+            pub_date: Optional[datetime] = None
+            if pub_date_str:
+                try:
+                    pub_date = datetime.strptime(pub_date_str, '%a, %d %b %Y %H:%M:%S %z')
+                except ValueError:
+                    print(f"Could not parse pubDate: {pub_date_str}")
 
-            # Remove script and style elements
-            for script_or_style in soup(["script", "style"]):
-                script_or_style.decompose()
+            image = None
+            if hasattr(entry, 'enclosures') and entry.enclosures:
+                for enclosure in entry.enclosures:
+                    if enclosure.get('type', '').startswith('image/'):
+                        image = enclosure.get('href')
+                        break
 
-            # Get text and clean it up
-            text = soup.get_text()
-            lines = (line.strip() for line in text.splitlines())
-            chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
-            content = "\n".join(chunk for chunk in chunks if chunk)
-
-            if not content:
-                content = "No content could be extracted."
-
-            # Save TrendData
-            trend_data = TrendDataCreate(
-                source_url=url,
+            trend_data_create = TrendDataCreate(
+                link=link,
                 title=title,
-                content=content,
-                category=category,
-                tags=tags,
-                image=image_url # Save the extracted image URL
+                description=description,
+                pub_date=pub_date,
+                image=image
             )
-            trend_crud.create(db, obj_in=trend_data)
-            print(f"Successfully scraped and saved: {url}")
 
-        except requests.RequestException as e:
-            print(f"Error during scraping {url}: {e}")
-        except Exception as e:
-            print(f"An unexpected error occurred while processing {url}: {e}")
+            try:
+                trend_crud.create(db, obj_in=trend_data_create)
+                print(f"Successfully processed and saved trend from: {link}")
+            except Exception as e:
+                print(f"Error processing trend from {link}: {e}")
 
     def get_trends(self, db: Session):
-        # In a real app, you'd add pagination here
         return db.query(trend_crud.model).order_by(trend_crud.model.scraped_at.desc()).all()
-
-
