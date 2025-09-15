@@ -4,6 +4,9 @@ import logging
 from urllib.parse import urljoin
 import feedparser
 from typing import Optional, List, Dict, Any
+import xml.etree.ElementTree as ET
+from html import unescape
+import re
 
 from app.core.config import settings
 
@@ -49,20 +52,54 @@ class ScraperAPIScraper(Scraper):
         response.raise_for_status()
         return response
 
+    def _clean_title(self, title_text):
+        """Clean title by removing CDATA tags and HTML entities"""
+        if title_text.startswith('<![CDATA[') and title_text.endswith(']]>'):
+            title_text = title_text[9:-3]  # Remove CDATA wrapper
+        title_text = re.sub(r'\s*\(TrendHunter\.com\)\s*', '', title_text)
+        return unescape(title_text)
+
+    def _clean_description(self, desc_text):
+        """Clean description by removing CDATA, HTML tags, and extracting clean text"""
+        if desc_text.startswith('<![CDATA[') and desc_text.endswith(']]>'):
+            desc_text = desc_text[9:-3]  # Remove CDATA wrapper
+
+        # Remove HTML tags but keep the text content
+        desc_text = re.sub(r'<[^>]+>', '', desc_text)
+        desc_text = re.sub(r'\s*\(TrendHunter\.com\)\s*', '', desc_text)
+
+        # Clean up extra whitespace
+        desc_text = ' '.join(desc_text.split())
+
+        return unescape(desc_text)
+
     def fetch_food_trends(self, rss_url: str) -> List[Dict]:
         articles = []
         try:
-            response = self._make_request(rss_url, timeout=10)
-            feed = feedparser.parse(response.content)
-            for entry in feed.entries:
-                print(entry, 'entry')
-                articles.append({
-                    "title": entry.title if hasattr(entry, 'title') else 'No Title',
-                    "link": entry.link if hasattr(entry, 'link') else 'No Link',
-                    "summary": entry.summary if hasattr(entry, 'summary') else 'No Summary',
-                })
+            response = self._make_request(rss_url, timeout=30)
+            response_text = response.text
+            root = ET.fromstring(response_text)
+            feeds = root.findall('.//item')
+
+            for item in feeds:
+                title = item.find('title')
+                link = item.find('link')
+                description = item.find('description')
+                pub_date = item.find('pubDate')
+                enclosure = item.find('enclosure')
+
+                item_data = {
+                    'title': self._clean_title(title.text) if title is not None else None,
+                    'link': link.text if link is not None else None,
+                    'description': self._clean_description(description.text) if description is not None else None,
+                    'pubDate': pub_date.text if pub_date is not None else None,
+                    'enclosure': enclosure.get('url') if enclosure is not None else None
+                }
+
+                articles.append(item_data)
         except requests.RequestException as e:
             logger.error(f"Error fetching RSS feed {rss_url}: {e}")
         except Exception as e:
             logger.error(f"Error parsing RSS feed {rss_url}: {e}")
+
         return articles

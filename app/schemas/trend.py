@@ -6,6 +6,7 @@ from datetime import datetime
 class TrendDataBase(BaseModel):
     link: HttpUrl
     title: str
+    slug: str # Added slug field
     description: Optional[str] = None
     pub_date: Optional[datetime] = None
     image: Optional[str] = None
