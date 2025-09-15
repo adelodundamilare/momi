@@ -5,7 +5,8 @@ from app.core.config import settings
 from app.schemas.chat import Message
 from app.crud.trend import trend as trend_crud
 from app.crud.ingredient import ingredient as ingredient_crud
-from app.services.ai_provider import AIProvider, OpenAIProvider # Import the new provider
+from app.services.ai_provider import AIProvider, OpenAIProvider
+from app.utils import prompt_templates
 
 class ChatService:
     def __init__(self, ai_provider: AIProvider = OpenAIProvider()): # Inject the provider
@@ -38,27 +39,11 @@ class ChatService:
         context = self._retrieve_context(latest_user_message, db)
 
         if agent_type == "innovative":
-            system_prompt = (
-                "You are a food innovation expert. Your goal is to provide helpful and concise answers "
-                "based on the provided context. If the context does not contain enough information, "
-                "state that you don't have enough information to answer the question. "
-                "Do not make up information. "
-                "Context:\n" + context
-            )
+            system_prompt = prompt_templates.INNOVATIVE_AGENT_SYSTEM_PROMPT.format(context=context)
         elif agent_type == "compliance":
-            system_prompt = (
-                "You are a food compliance expert. Your goal is to provide helpful and concise answers "
-                "based on the provided context, focusing on regulatory and safety aspects. "
-                "If the context does not contain enough information, "
-                "state that you don't have enough information to answer the question. "
-                "Do not make up information. "
-                "Context:\n" + context
-            )
+            system_prompt = prompt_templates.COMPLIANCE_AGENT_SYSTEM_PROMPT.format(context=context)
         else:
-            system_prompt = (
-                "You are a helpful assistant. "
-                "Context:\n" + context
-            )
+            system_prompt = prompt_templates.DEFAULT_AGENT_SYSTEM_PROMPT.format(context=context)
 
         # Prepend the system prompt to the messages list
         messages_for_ai = [Message(role="system", content=system_prompt)] + messages

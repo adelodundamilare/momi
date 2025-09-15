@@ -6,6 +6,7 @@ from app.crud.formula import formula as formula_crud
 from app.crud.marketing import marketing_copy as marketing_copy_crud
 from app.models.marketing import MarketingCopy
 from app.schemas.marketing import MarketingCopyCreate
+from app.utils.prompt_templates import IMAGE_PROMPT_TEMPLATE, get_image_prompt_details
 
 class MarketingService:
     def __init__(self, ai_provider: AIProvider = OpenAIProvider()):
@@ -27,7 +28,20 @@ class MarketingService:
         except AIProviderError as e:
             raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=f"AI service failed to generate marketing copy: {e}")
 
-        image_prompt = f"A professional product mockup of '{ai_marketing_copy.product_name}', a {formula.description}. The packaging should be clean, modern, and appealing to consumers. Product shot, studio lighting."
+        # Categorize the product to generate a better image prompt
+        category = await self.ai_provider.categorize_product(
+            product_name=ai_marketing_copy.product_name,
+            product_description=formula.description
+        )
+
+        # Get dynamic prompt details and format the final prompt
+        prompt_details = get_image_prompt_details(category)
+        image_prompt = IMAGE_PROMPT_TEMPLATE.format(
+            product_name=ai_marketing_copy.product_name,
+            product_description=formula.description,
+            **prompt_details
+        )
+
         try:
             image_url = await self.ai_provider.generate_image(image_prompt)
         except AIProviderError as e:
@@ -50,7 +64,22 @@ class MarketingService:
         if not marketing_copy:
             raise HTTPException(status_code=404, detail="Marketing copy not found for this formula. Please generate it first.")
 
-        image_prompt = f"A professional product mockup of '{marketing_copy.product_name}', a {formula.description}. The packaging should be clean, modern, and appealing to consumers. Product shot, studio lighting, alternative take."
+        # Categorize the product to generate a better image prompt
+        category = await self.ai_provider.categorize_product(
+            product_name=marketing_copy.product_name,
+            product_description=formula.description
+        )
+
+        # Get dynamic prompt details and format the final prompt
+        prompt_details = get_image_prompt_details(category)
+        # Add 'alternative take' to get a different image
+        prompt_details['extra_details'] += ", alternative take, different angle"
+        image_prompt = IMAGE_PROMPT_TEMPLATE.format(
+            product_name=marketing_copy.product_name,
+            product_description=formula.description,
+            **prompt_details
+        )
+
         try:
             image_url = await self.ai_provider.generate_image(image_prompt)
         except AIProviderError as e:

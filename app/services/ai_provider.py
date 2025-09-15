@@ -16,6 +16,7 @@ from app.schemas.ai_responses import (
     AIFormulaDetails
 )
 from app.schemas.marketing import AIMarketingCopy
+from app.utils import prompt_templates
 
 # Setup logger
 logger = logging.getLogger(__name__)
@@ -59,6 +60,10 @@ class AIProvider(ABC):
 
     @abstractmethod
     async def generate_image(self, prompt: str) -> str:
+        pass
+
+    @abstractmethod
+    async def categorize_product(self, product_name: str, product_description: str) -> str:
         pass
 
 class OpenAIProvider(AIProvider):
@@ -129,38 +134,32 @@ class OpenAIProvider(AIProvider):
             yield "Error: Could not connect to the AI service."
 
     async def generate_summary_and_sentiment(self, text_content: str) -> AISummaryAndSentiment:
-        instruction = "You are an expert analyst. Analyze the provided article and provide a concise, one-paragraph summary and a sentiment analysis (Positive, Negative, or Neutral)."
-        system_prompt = self._create_prompt_from_model(AISummaryAndSentiment, instruction)
+        system_prompt = self._create_prompt_from_model(AISummaryAndSentiment, prompt_templates.SUMMARY_AND_SENTIMENT_INSTRUCTION)
         return await self._make_ai_call(system_prompt, text_content, AISummaryAndSentiment)
 
-    
-
     async def generate_trend_signals(self, combined_content: str) -> AITrendSignals:
-        instruction = "You are an expert in food market trends. Analyze the provided social media posts and identify trend signals. A trend signal is an ingredient, product, or concept with an upward (^) or downward (v) trend."
-        system_prompt = self._create_prompt_from_model(AITrendSignals, instruction)
+        system_prompt = self._create_prompt_from_model(AITrendSignals, prompt_templates.TREND_SIGNALS_INSTRUCTION)
         return await self._make_ai_call(system_prompt, combined_content, AITrendSignals)
 
     async def generate_ingredient_enrichment(self, ingredient_name: str) -> AIIngredientEnrichment:
-        instruction = f"You are an expert in food ingredients. For the ingredient '{ingredient_name}', provide a detailed enrichment covering its description, benefits, common claims, regulatory notes, function, and typical allergies."
+        instruction = prompt_templates.INGREDIENT_ENRICHMENT_INSTRUCTION.format(ingredient_name=ingredient_name)
         system_prompt = self._create_prompt_from_model(AIIngredientEnrichment, instruction)
         user_prompt = f"Generate enrichment data for {ingredient_name}."
         return await self._make_ai_call(system_prompt, user_prompt, AIIngredientEnrichment)
 
     async def generate_insight_portal_data(self, ingredient_name: str) -> AIInsightPortalData:
-        instruction = f"You are an AI assistant specializing in food and beverage market analysis. For the ingredient '{ingredient_name}', generate a comprehensive market insight report."
+        instruction = prompt_templates.INSIGHT_PORTAL_INSTRUCTION.format(ingredient_name=ingredient_name)
         system_prompt = self._create_prompt_from_model(AIInsightPortalData, instruction)
         user_prompt = f"Generate insight portal data for {ingredient_name}."
         return await self._make_ai_call(system_prompt, user_prompt, AIInsightPortalData)
 
     async def generate_formula_details(self, product_concept: str) -> AIFormulaDetails:
-        instruction = f"You are an AI assistant for food and beverage formula development. For the given product concept, generate a plausible formula."
-        system_prompt = self._create_prompt_from_model(AIFormulaDetails, instruction)
+        system_prompt = self._create_prompt_from_model(AIFormulaDetails, prompt_templates.FORMULA_DETAILS_INSTRUCTION)
         user_prompt = f"The product concept is: {product_concept}"
         return await self._make_ai_call(system_prompt, user_prompt, AIFormulaDetails)
 
     async def generate_marketing_copy(self, formula_name: str, formula_description: str) -> AIMarketingCopy:
-        instruction = "You are an expert in product marketing for the food and beverage industry. Based on the formula name and description, generate compelling marketing copy."
-        system_prompt = self._create_prompt_from_model(AIMarketingCopy, instruction)
+        system_prompt = self._create_prompt_from_model(AIMarketingCopy, prompt_templates.MARKETING_COPY_INSTRUCTION)
         user_prompt = f"Formula Name: {formula_name}\nFormula Description: {formula_description}"
         return await self._make_ai_call(system_prompt, user_prompt, AIMarketingCopy)
 
@@ -179,3 +178,21 @@ class OpenAIProvider(AIProvider):
         except openai.APIError as e:
             logger.error(f"OpenAI DALL-E error: {e}")
             raise AIProviderError("Failed to generate image.") from e
+
+    async def categorize_product(self, product_name: str, product_description: str) -> str:
+        """Categorizes the product into one of several predefined categories."""
+        system_prompt = prompt_templates.PRODUCT_CATEGORIZATION_SYSTEM_PROMPT
+        try:
+            response = await self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": f"Product Name: {product_name}\nDescription: {product_description}"}
+                ],
+                temperature=0,
+            )
+            return response.choices[0].message.content.strip("'.\" ")
+        except Exception as e:
+            logger.error(f"An unexpected error occurred during product categorization: {e}")
+            # Fallback to a generic category
+            return "Other"
