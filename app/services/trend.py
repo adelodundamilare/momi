@@ -21,11 +21,11 @@ class TrendService:
         try:
             pub_date = datetime.strptime(pubDate_str, "%a, %d %b %Y %H:%M:%S %z")
         except ValueError:
-            print(f"Warning: Could not parse pubDate '{pubDate_str}' for trend '{title}' with strptime. Attempting fallback.")
+            # print(f"Warning: Could not parse pubDate '{pubDate_str}' for trend '{title}' with strptime. Attempting fallback.")
             try:
                 pub_date = parsedate_to_datetime(pubDate_str)
             except (ValueError, TypeError):
-                print(f"Warning: Could not parse pubDate '{pubDate_str}' for trend '{title}' with parsedate_to_datetime either. Setting to None.")
+                print(f"Warning 2: Could not parse pubDate '{pubDate_str}' for trend '{title}' with parsedate_to_datetime either. Setting to None.")
                 pub_date = None
         return pub_date
 
