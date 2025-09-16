@@ -13,3 +13,5 @@ class TrendData(Base):
     pub_date = Column(DateTime(timezone=True), nullable=True)
     scraped_at = Column(DateTime(timezone=True), server_default=func.now())
     image = Column(String, nullable=True)
+    category = Column(String, default='uncategorized', index=True)
+    tags = Column(JSON, nullable=True)

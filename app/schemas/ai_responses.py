@@ -19,6 +19,11 @@ class AITrendData(BaseModel):
     sentiment: str
     impact_score: int = Field(..., ge=1, le=10, description="Impact score from 1 to 10, 10 being highest.")
 
+# --- For generate_trend_category_and_tags ---
+class AITrendCategoryAndTags(BaseModel):
+    category: str = Field(..., description="The determined category for the trend.")
+    tags: List[str] = Field(..., description="A list of relevant tags or keywords for the trend.")
+
 # --- For generate_ingredient_enrichment ---
 class AIIngredientEnrichment(BaseModel):
     description: Optional[str] = None

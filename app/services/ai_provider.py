@@ -14,7 +14,7 @@ from app.schemas.ai_responses import (
     AIIngredientEnrichment,
     AIInsightPortalData,
     AIFormulaDetails,
-    AITrendData
+    AITrendData,AITrendCategoryAndTags
 )
 from app.schemas.marketing import AIMarketingCopy
 from app.utils import prompt_templates
@@ -207,3 +207,9 @@ class OpenAIProvider(AIProvider):
         system_prompt = self._create_prompt_from_model(AITrendData, instruction)
         user_prompt = f"Article Title: {article_title}\nArticle Content: {article_content}"
         return await self._make_ai_call(system_prompt, user_prompt, AITrendData)
+
+    async def generate_trend_category_and_tags(self, article_title: str, article_content: str) -> AITrendCategoryAndTags:
+        instruction = prompt_templates.TREND_CATEGORY_AND_TAGS_INSTRUCTION
+        system_prompt = self._create_prompt_from_model(AITrendCategoryAndTags, instruction)
+        user_prompt = f"Article Title: {article_title}\nArticle Content: {article_content}"
+        return await self._make_ai_call(system_prompt, user_prompt, AITrendCategoryAndTags)

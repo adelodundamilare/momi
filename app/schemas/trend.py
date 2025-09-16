@@ -1,6 +1,14 @@
 from pydantic import BaseModel, HttpUrl, Field
 from typing import Optional, List, Dict
 from datetime import datetime
+from enum import Enum
+
+class TrendCategory(str, Enum):
+    BEVERAGE = "beverage"
+    SNACK = "snack"
+    PROTEIN = "protein"
+    SUPPLEMENT = "supplement"
+    UNCATEGORIZED = "uncategorized"
 
 # Shared properties
 class TrendDataBase(BaseModel):
@@ -10,6 +18,8 @@ class TrendDataBase(BaseModel):
     description: Optional[str] = None
     pub_date: Optional[datetime] = None
     image: Optional[str] = None
+    category: Optional[TrendCategory] = TrendCategory.UNCATEGORIZED
+    tags: Optional[List[str]] = []
 
 # Properties to receive on item creation
 class TrendDataCreate(TrendDataBase):
