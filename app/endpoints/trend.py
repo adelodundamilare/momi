@@ -25,7 +25,6 @@ async def fetch_and_process_trends(
     Initiate fetching and processing of trends from a hardcoded RSS feed in the background.
     """
     try:
-        # Instantiate TrendService here with the globally defined scraper
         trend_service = TrendService(scraper=scraper)
         background_tasks.add_task(trend_service.fetch_and_process_trends, db)
         return APIResponse(message="Trend fetching and processing initiated in the background.")
@@ -41,7 +40,6 @@ def read_trends(
     Retrieve a list of scraped trends.
     """
     try:
-        # Instantiate TrendService here with the globally defined scraper
         trend_service = TrendService(scraper=scraper)
         trends = trend_service.get_trends(db)
         trends_response = [TrendData.from_orm(trend) for trend in trends]
