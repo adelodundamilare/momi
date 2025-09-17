@@ -1,4 +1,4 @@
-from pydantic import BaseModel, HttpUrl
+from pydantic import BaseModel, HttpUrl, computed_field
 from typing import Optional
 from datetime import datetime
 import random
@@ -9,7 +9,6 @@ class NewsFeedBase(BaseModel):
     source: str
     url: HttpUrl
     image: Optional[str] = None
-    views: int = random.randint(100, 10000)
     published_at: Optional[datetime] = None
 
 class NewsFeedCreate(NewsFeedBase):
@@ -25,4 +24,7 @@ class NewsFeedInDBBase(NewsFeedBase):
         from_attributes = True
 
 class NewsFeed(NewsFeedInDBBase):
-    pass
+    @computed_field
+    @property
+    def views(self) -> int:
+        return random.randint(100, 10000)

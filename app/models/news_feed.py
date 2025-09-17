@@ -11,5 +11,4 @@ class NewsFeed(Base):
     source = Column(String, nullable=False)
     url = Column(String, nullable=False)
     image = Column(String, nullable=True)
-    views = Column(Integer, default=0)
     published_at = Column(DateTime(timezone=True), nullable=True)
