@@ -1,63 +1,59 @@
 from sqlalchemy.orm import Session
-import requests
-from bs4 import BeautifulSoup
-from typing import List
+from typing import List, Optional
+from datetime import datetime
+from email.utils import parsedate_to_datetime
 
 from app.crud.news_feed import news_feed as news_feed_crud
-from app.schemas.news_feed import NewsFeedCreate
+from app.schemas.news_feed import NewsFeedCreate, NewsFeed
+from app.services.scraper import Scraper
+from app.utils.text_utils import generate_slug
 
 class NewsFeedService:
-    def scrape_and_save(self, db: Session, *, url: str, category: str | None = None, tags: List[str] | None = None):
-        """
-        Scrapes a URL, extracts title, content, and image, and saves to the news_feed table.
-        """
+    FOOD_DIVE_RSS_FEED_URL = "https://www.fooddive.com/feeds/news/"
+
+    def __init__(self, scraper: Scraper):
+        self.scraper = scraper
+
+    def _parse_pub_date(self, pubDate_str: str, title: str) -> Optional[datetime]:
+        """Parses a pubDate string into a datetime object."""
+        if not pubDate_str:
+            return None
         try:
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-            }
-            response = requests.get(url, headers=headers, timeout=10)
-            response.raise_for_status() # Raise an exception for bad status codes
+            return parsedate_to_datetime(pubDate_str)
+        except (ValueError, TypeError):
+            print(f"Warning: Could not parse pubDate '{pubDate_str}' for news '{title}'. Setting to None.")
+            return None
 
-            soup = BeautifulSoup(response.content, 'html.parser')
+    async def fetch_and_process_news(self, db: Session):
+        print(f"Fetching articles from RSS feed: {self.FOOD_DIVE_RSS_FEED_URL}")
+        articles = self.scraper.fetch_food_news(self.FOOD_DIVE_RSS_FEED_URL)
+        print(f"Found {len(articles)} news articles")
 
-            title = soup.title.string if soup.title else 'No Title Found'
-            
-            # Extract featured image URL
-            image_url = None
-            og_image = soup.find("meta", property="og:image")
-            if og_image and og_image.get("content"):
-                image_url = og_image["content"]
-            else:
-                # Fallback to finding the first significant image in the body
-                main_content = soup.find("body") # Or a more specific content div
-                if main_content:
-                    first_img = main_content.find("img")
-                    if first_img and first_img.get("src"):
-                        image_url = first_img["src"]
+        for entry in articles:
+            if not entry["title"] or not entry["link"]:
+                continue
 
-            # Remove script and style elements
-            for script_or_style in soup(["script", "style"]):
-                script_or_style.decompose()
+            slug = generate_slug(entry["title"])
+            if news_feed_crud.get_by_slug(db, slug=slug):
+                # print(f"Skipping duplicate news: {entry["title"]}")
+                continue
 
-            # Get text and clean it up
-            text = soup.get_text()
-            lines = (line.strip() for line in text.splitlines())
-            chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
-            content = "\n".join(chunk for chunk in chunks if chunk)
-
-            if not content:
-                content = "No content could be extracted."
-
-            news_data = NewsFeedCreate(
-                title=title,
-                source=url,
-                url=url,
-                image=image_url
+            news_data_create = NewsFeedCreate(
+                title=entry["title"],
+                slug=slug,
+                source="Food Dive", # Hardcode the source
+                url=entry["link"],
+                image=entry["image"],
+                published_at=self._parse_pub_date(entry["pubDate"], entry["title"])
             )
-            news_feed_crud.create(db, obj_in=news_data)
-            print(f"Successfully scraped and saved news: {url}")
 
-        except requests.RequestException as e:
-            print(f"Error during scraping news {url}: {e}")
-        except Exception as e:
-            print(f"An unexpected error occurred while processing news {url}: {e}")
+            try:
+                news_feed_crud.create(db, obj_in=news_data_create)
+                # print(f"Successfully processed and saved news: {entry["title"]}")
+            except Exception as e:
+                print(f"Error processing news from {entry['link']}: {e}")
+
+    def get_news(self, db: Session, *, skip: int = 0, limit: int = 100) -> List[NewsFeed]:
+        """Retrieve news with pagination."""
+        return news_feed_crud.get_multi(db, skip=skip, limit=limit)
+

@@ -5,10 +5,12 @@ import random
 
 class NewsFeedBase(BaseModel):
     title: str
+    slug: str
     source: str
     url: HttpUrl
     image: Optional[str] = None
     views: int = random.randint(100, 10000)
+    published_at: Optional[datetime] = None
 
 class NewsFeedCreate(NewsFeedBase):
     pass
@@ -18,7 +20,6 @@ class NewsFeedUpdate(NewsFeedBase):
 
 class NewsFeedInDBBase(NewsFeedBase):
     id: int
-    published_at: datetime
 
     class Config:
         from_attributes = True

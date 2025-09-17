@@ -26,7 +26,11 @@ class Scraper(ABC):
     """Abstract base class for web scraping services."""
 
     @abstractmethod
-    def fetch_food_trends(self, rss_url: str) -> List[Dict]: # Corrected method name
+    def fetch_food_trends(self, rss_url: str) -> List[Dict]:
+        pass
+
+    @abstractmethod
+    def fetch_food_news(self, rss_url: str) -> List[Dict]:
         pass
 
 class ScraperAPIScraper(Scraper):
@@ -73,6 +77,32 @@ class ScraperAPIScraper(Scraper):
 
         return unescape(desc_text)
 
+    def _extract_image_url(self, description, item) -> Optional[str]:
+        """Extract image URL from description HTML or enclosure"""
+        image_url = None
+
+        # First try to find enclosure with image
+        enclosure = item.find('enclosure')
+        if enclosure is not None:
+            enclosure_type = enclosure.get('type', '')
+            if enclosure_type.startswith('image/'):
+                return enclosure.get('url')
+
+        # Then try to extract from description HTML
+        if description is not None:
+            desc_text = description.text
+            if desc_text:
+                # Remove CDATA if present
+                if desc_text.startswith('<![CDATA[') and desc_text.endswith(']]>'):
+                    desc_text = desc_text[9:-3]
+
+                # Look for img src attributes
+                img_match = re.search(r'<img[^>]+src=["\']([^"\']+)["\']', desc_text, re.IGNORECASE)
+                if img_match:
+                    image_url = img_match.group(1)
+
+        return image_url
+
     def fetch_food_trends(self, rss_url: str) -> List[Dict]:
         articles = []
         try:
@@ -94,6 +124,39 @@ class ScraperAPIScraper(Scraper):
                     'description': self._clean_description(description.text) if description is not None else None,
                     'pubDate': pub_date.text if pub_date is not None else None,
                     'enclosure': enclosure.get('url') if enclosure is not None else None
+                }
+
+                articles.append(item_data)
+        except requests.RequestException as e:
+            logger.error(f"Error fetching RSS feed {rss_url}: {e}")
+        except Exception as e:
+            logger.error(f"Error parsing RSS feed {rss_url}: {e}")
+
+        return articles
+
+    def fetch_food_news(self, rss_url: str) -> List[Dict]:
+        articles = []
+        try:
+            response = self._make_request(rss_url, timeout=30)
+            response_text = response.text
+            # Register namespace to handle media:content tags
+            namespaces = {'media': 'http://search.yahoo.com/mrss/'}
+            root = ET.fromstring(response_text)
+            feeds = root.findall('.//item')
+
+            for item in feeds:
+                title = item.find('title')
+                link = item.find('link')
+                description = item.find('description')
+                pub_date = item.find('pubDate')
+                image_url = self._extract_image_url(description, item)
+
+                item_data = {
+                    'title': self._clean_title(title.text) if title is not None else None,
+                    'link': link.text if link is not None else None,
+                    'description': self._clean_description(description.text) if description is not None else None,
+                    'pubDate': pub_date.text if pub_date is not None else None,
+                    'image': image_url
                 }
 
                 articles.append(item_data)

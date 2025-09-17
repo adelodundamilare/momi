@@ -4,10 +4,9 @@ from typing import List
 
 from app.core.database import get_db
 from app.schemas.news_feed import NewsFeed
-from app.crud.news_feed import news_feed
-from app.schemas.utility import APIResponse
-from app.schemas.trend import ScrapeRequest # Re-using ScrapeRequest for consistency
 from app.services.news_feed import NewsFeedService
+from app.services.scraper import ScraperAPIScraper
+from app.schemas.utility import APIResponse
 from app.utils.deps import get_current_user
 from app.models.user import User
 from app.crud.bookmarked_news import bookmarked_news
@@ -19,10 +18,25 @@ logger = setup_logger("news_feed_api", "news_feed.log")
 
 router = APIRouter()
 
-news_feed_service = NewsFeedService()
+# Instantiate dependencies
+scraper = ScraperAPIScraper()
+news_feed_service = NewsFeedService(scraper=scraper)
 
-def scrape_task(db: Session, url: str, category: str | None, tags: List[str] | None):
-    news_feed_service.scrape_and_save(db, url=url, category=category, tags=tags)
+@router.post("/fetch-and-process", response_model=APIResponse)
+async def fetch_and_process_news(
+    db: Session = Depends(get_db),
+    background_tasks: BackgroundTasks = BackgroundTasks(),
+    current_user: User = Depends(get_current_user) # Protected endpoint
+):
+    """
+    Initiate fetching and processing of news from the Food Dive RSS feed.
+    """
+    try:
+        background_tasks.add_task(news_feed_service.fetch_and_process_news, db)
+        return APIResponse(message="News feed fetching and processing initiated.")
+    except Exception as e:
+        logger.error(f"Error initiating news fetch: {e}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 @router.get("/", response_model=APIResponse)
 def read_news_feed(
@@ -34,29 +48,11 @@ def read_news_feed(
     Retrieve a list of news feed items with pagination.
     """
     try:
-        news_feed_items = news_feed.get_multi(db, skip=skip, limit=limit)
-        news_feed_response = [NewsFeed.from_orm(item) for item in news_feed_items]
+        news_items = news_feed_service.get_news(db, skip=skip, limit=limit)
+        news_feed_response = [NewsFeed.from_orm(item) for item in news_items]
         return APIResponse(message="News feed retrieved successfully", data=news_feed_response)
     except Exception as e:
         logger.error(f"Error in read_news_feed: {str(e)}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
-
-@router.post("/scrape", response_model=APIResponse)
-def scrape_news(
-    *, 
-    db: Session = Depends(get_db), 
-    request: ScrapeRequest,
-    background_tasks: BackgroundTasks,
-    current_user: User = Depends(get_current_user)
-):
-    """
-    Initiate scraping of a news URL in the background.
-    """
-    try:
-        background_tasks.add_task(scrape_task, db, str(request.url), request.category, request.tags)
-        return APIResponse(message="News scraping has been initiated in the background.")
-    except Exception as e:
-        logger.error(f"Error in scrape_news: {str(e)}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 @router.post("/{news_id}/bookmark", response_model=APIResponse)
@@ -68,6 +64,19 @@ def bookmark_news(
     """
     Bookmark a news item for the current user.
     """
+    # Check if news item exists
+    news_item = db.query(NewsFeedModel).filter(NewsFeedModel.id == news_id).first()
+    if not news_item:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="News item not found")
+
+    # Check if already bookmarked
+    existing_bookmark = db.query(bookmarked_news.model).filter(
+        bookmarked_news.model.user_id == current_user.id,
+        bookmarked_news.model.news_feed_id == news_id
+    ).first()
+    if existing_bookmark:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="News item already bookmarked")
+
     try:
         obj_in = BookmarkedNewsCreate(user_id=current_user.id, news_feed_id=news_id)
         bookmarked_news.create(db, obj_in=obj_in)

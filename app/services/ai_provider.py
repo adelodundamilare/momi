@@ -37,8 +37,6 @@ class AIProvider(ABC):
     async def generate_summary_and_sentiment(self, text_content: str) -> AISummaryAndSentiment:
         pass
 
-
-
     @abstractmethod
     async def generate_trend_signals(self, combined_content: str) -> AITrendSignals:
         pass
