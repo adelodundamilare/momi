@@ -25,6 +25,23 @@ class UserService:
         return user
 
     def change_password(self, db, user, old_password, new_password):
+        # Validate new_password
+        if not new_password or not new_password.strip():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="New password cannot be empty or contain only whitespace."
+            )
+        if len(new_password) < 8:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="New password must be at least 8 characters long."
+            )
+        if new_password == old_password:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="New password must be different from the current password."
+            )
+
         if not user_crud.authenticate(db, email=user.email, password=old_password):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, BackgroundTasks, HTTPException, status
+from fastapi import APIRouter, Depends, BackgroundTasks, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -41,8 +41,8 @@ async def fetch_and_process_news(
 @router.get("/", response_model=APIResponse)
 def read_news_feed(
     db: Session = Depends(get_db),
-    skip: int = 0,
-    limit: int = 100
+    skip: int = Query(0, ge=0, description="Number of items to skip"),
+    limit: int = Query(100, ge=1, le=200, description="Number of items to return")
 ):
     """
     Retrieve a list of news feed items with pagination.

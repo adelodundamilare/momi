@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.endpoints import auth, account, utility, ingredient, formula, trend, chat, commercial_workflow, news_feed, insight_portal, supplier, marketing
 from fastapi.exceptions import RequestValidationError
-from app.middleware.exceptions import global_exception_handler
+from app.middleware.exceptions import global_exception_handler, validation_exception_handler
 import logging
 
 logging.basicConfig(level=logging.INFO)
@@ -25,7 +25,7 @@ app.add_middleware(
 )
 
 app.add_exception_handler(Exception, global_exception_handler)
-app.add_exception_handler(RequestValidationError, global_exception_handler)
+app.add_exception_handler(RequestValidationError, validation_exception_handler)
 
 # Include routers
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
