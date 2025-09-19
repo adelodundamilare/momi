@@ -14,6 +14,14 @@ class UserCreate(BaseModel):
     password: str
     subscription_plan: Optional[SubscriptionPlan] = SubscriptionPlan.FREE
 
+    @field_validator("password")
+    def validate_password(cls, v):
+        if not v or not v.strip():
+            raise ValueError("Password cannot be empty or contain only whitespace.")
+        if len(v) < 8:
+            raise ValueError("Password must be at least 8 characters long.")
+        return v
+
 class UserUpdate(BaseModel):
     full_name: Optional[str] = None
     avatar: Optional[str] = None
