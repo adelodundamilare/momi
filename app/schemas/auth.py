@@ -16,6 +16,10 @@ class UserCreate(BaseModel):
             raise ValueError("Password cannot be empty or contain only whitespace.")
         if len(v) < 8:
             raise ValueError("Password must be at least 8 characters long.")
+        if v.isdigit():
+            raise ValueError("Password cannot be all numbers.")
+        if v.isalpha():
+            raise ValueError("Password cannot be all letters.")
         return v
 
 class Token(BaseModel):
