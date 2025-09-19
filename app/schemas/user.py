@@ -45,6 +45,7 @@ class UserResponse(BaseModel):
     email: EmailStr
     subscription_plan: SubscriptionPlan
     auth_provider: str
+    avatar: Optional[str]
 
     class Config:
         from_attributes = True

@@ -39,7 +39,7 @@ app.include_router(news_feed.router, prefix="/news-feed", tags=["news_feed"])
 # app.include_router(insight_portal.router, prefix="/insight-portal", tags=["insight_portal"])
 # app.include_router(supplier.router, prefix="/suppliers", tags=["suppliers"])
 # app.include_router(marketing.router, tags=["marketing"])
-# app.include_router(utility.router, prefix="/utility", tags=["utility"])
+app.include_router(utility.router, prefix="/utility", tags=["utility"])
 
 if __name__ == "__main__":
     import uvicorn
