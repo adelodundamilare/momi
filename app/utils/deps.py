@@ -18,6 +18,12 @@ async def get_current_user(
         payload = jwt.decode(
             token, settings.SECRET_KEY, algorithms=["HS256"]
         )
+        
+        # Check if token is in denylist
+        jti = payload.get("jti")
+        if jti and token_denylist_crud.get_by_jti(db, jti=jti):
+            raise HTTPException(status_code=401, detail="Token has been revoked")
+
         email: str = payload.get("sub")
         if email is None:
             raise HTTPException(status_code=401, detail="Invalid token")

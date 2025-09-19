@@ -148,9 +148,19 @@ async def forgot_password(reset_data: auth_schema.PasswordResetVerify, db: Sessi
         raise
 
 @router.post("/logout", response_model=APIResponse)
-async def logout(current_user: User = Depends(get_current_user)):
+async def logout(
+    db: Session = Depends(get_db),
+    credentials: HTTPAuthorizationCredentials = Depends(http_bearer)
+):
    try:
-    #    auth_service.invalidate_token(current_user.id)
+       token = credentials.credentials
+       payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+       jti = payload.get("jti")
+       exp = datetime.fromtimestamp(payload.get("exp"))
+
+       obj_in = TokenDenylistCreate(jti=jti, exp=exp)
+       token_denylist_crud.create(db, obj_in=obj_in)
+
        return APIResponse(message="Logged out successfully")
    except Exception as e:
         logger.error(f"Error: {str(e)}")
