@@ -36,6 +36,11 @@ class UserService:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="New password must be at least 8 characters long."
             )
+        if new_password.isdigit() or new_password.isalpha():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="New password must contain both letters and numbers."
+            )
         if new_password == old_password:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
