@@ -6,6 +6,7 @@ from app.core.config import settings
 from app.core.database import get_db
 from app.crud.user import user as user_crud
 from app.models.user import User
+from app.crud.token_denylist import token_denylist as token_denylist_crud
 
 http_bearer = HTTPBearer()
 
@@ -18,7 +19,7 @@ async def get_current_user(
         payload = jwt.decode(
             token, settings.SECRET_KEY, algorithms=["HS256"]
         )
-        
+
         # Check if token is in denylist
         jti = payload.get("jti")
         if jti and token_denylist_crud.get_by_jti(db, jti=jti):

@@ -1,22 +1,29 @@
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
-from datetime import datetime, timedelta
+from datetime import datetime
+from jose import jwt
+
 from app.core.database import get_db
+from app.core.config import settings
 from app.core.security import create_access_token
 from app.crud.user import user as user_crud
+from app.crud.token_denylist import token_denylist as token_denylist_crud
 from app.schemas import auth as auth_schema
+from app.schemas.token_denylist import TokenDenylistCreate
 from app.services.email import EmailService
 from app.utils.logger import setup_logger
 from app.services.user import UserService
 from app.services.auth import AuthService
 from app.utils.deps import get_current_user
 from app.models.user import User
-from app.schemas.utility import APIResponse # Import the new schema
+from app.schemas.utility import APIResponse
 
 logger = setup_logger("auth_api", "auth.log")
 
 router = APIRouter()
+http_bearer = HTTPBearer()
 
 user_service = UserService()
 auth_service = AuthService()
