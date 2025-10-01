@@ -4,13 +4,14 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from app.core.database import get_db
-from app.schemas.chat import ChatRequest, ChatHistory, ChatHistoryCreate
+from app.schemas.chat import ChatRequest, ChatHistoryCreate
 from app.services.chat import ChatService
 from app.crud.chat import chat_history
 from app.utils.deps import get_current_user
 from app.models.user import User
 from app.schemas.utility import APIResponse
 from app.utils.logger import setup_logger
+from app.schemas.chat import ChatHistory # Import Pydantic schema for response
 
 logger = setup_logger("chat_api", "chat.log")
 
@@ -31,7 +32,7 @@ def stream_chat(
     try:
         chat_history.create(db, obj_in=ChatHistoryCreate(user_id=current_user.id, messages=request.messages))
         return StreamingResponse(
-            chat_service.send_streaming_message(request.messages, db, request.agent_type), 
+            chat_service.send_streaming_message(request.messages, db, request.agent_type),
             media_type="text/event-stream"
         )
     except Exception as e:
@@ -47,7 +48,7 @@ def get_chat_history(
     Retrieve chat history for the current user.
     """
     try:
-        history = db.query(ChatHistory).filter(ChatHistory.user_id == current_user.id).all()
+        history = chat_service.get_user_chat_history(db, current_user.id)
         history_response = [ChatHistory.from_orm(h) for h in history]
         return APIResponse(message="Chat history retrieved successfully", data=history_response)
     except Exception as e:

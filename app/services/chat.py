@@ -5,8 +5,10 @@ from app.core.config import settings
 from app.schemas.chat import Message
 from app.crud.trend import trend as trend_crud
 from app.crud.ingredient import ingredient as ingredient_crud
+from app.crud.chat import chat_history as chat_history_crud # Import chat_history_crud
 from app.services.ai_provider import AIProvider, OpenAIProvider
 from app.utils import prompt_templates
+from app.models.chat import ChatHistory as ChatHistoryModel # Import SQLAlchemy model
 
 class ChatService:
     def __init__(self, ai_provider: AIProvider = OpenAIProvider()): # Inject the provider
@@ -49,3 +51,7 @@ class ChatService:
         messages_for_ai = [Message(role="system", content=system_prompt)] + messages
         
         return self.ai_provider.generate_chat_completion(messages_for_ai)
+
+    def get_user_chat_history(self, db: Session, user_id: int) -> List[ChatHistoryModel]:
+        return chat_history_crud.get_by_user_id(db, user_id=user_id)
+
