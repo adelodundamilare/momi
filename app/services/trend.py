@@ -7,7 +7,7 @@ from fastapi import BackgroundTasks
 from app.crud.trend import trend as trend_crud
 from app.schemas.trend import TrendDataCreate, TrendCategory, TrendData
 from app.services.scraper import Scraper
-from app.services.ai_provider import AIProvider, OpenAIProvider # Assuming OpenAIProvider is the concrete implementation
+from app.services.ai_provider import AIProvider, OpenAIProvider
 from app.utils.text_utils import generate_slug
 
 class TrendService:

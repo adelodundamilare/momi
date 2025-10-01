@@ -14,7 +14,7 @@ class TrendCategory(str, Enum):
 class TrendDataBase(BaseModel):
     link: HttpUrl
     title: str
-    slug: str # Added slug field
+    slug: str
     description: Optional[str] = None
     pub_date: Optional[datetime] = None
     image: Optional[str] = None

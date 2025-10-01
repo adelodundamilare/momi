@@ -47,7 +47,7 @@ def read_trends(
     Retrieve a list of scraped trends with pagination and category filtering.
     """
     try:
-        # Note: AI provider is not strictly needed for reading, but passed for consistency
+        
         trend_service = TrendService(scraper=scraper, ai_provider=ai_provider)
         trends = trend_service.get_trends(db, skip=skip, limit=limit, category=category)
         trends_response = [TrendData.from_orm(trend) for trend in trends]

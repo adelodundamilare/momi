@@ -155,7 +155,6 @@ async def forgot_password(reset_data: auth_schema.PasswordResetVerify, db: Sessi
             template_context={}
         )
 
-        # invalidate token
 
         return APIResponse(message="Password Reset Successfully")
     except Exception as e:

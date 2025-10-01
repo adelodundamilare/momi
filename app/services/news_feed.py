@@ -49,7 +49,6 @@ class NewsFeedService:
 
             try:
                 news_feed_crud.create(db, obj_in=news_data_create)
-                # print(f"Successfully processed and saved news: {entry["title"]}")
             except Exception as e:
                 print(f"Error processing news from {entry['link']}: {e}")
 

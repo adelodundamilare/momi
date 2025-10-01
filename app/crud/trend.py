@@ -5,7 +5,6 @@ from app.models.trend import TrendData
 from app.schemas.trend import TrendDataCreate, TrendCategory
 from typing import Optional, List
 
-# TrendData does not need an Update schema for now
 class CRUDTrendData(CRUDBase[TrendData, TrendDataCreate, None]):
     def get_by_slug(self, db: Session, *, slug: str) -> Optional[TrendData]:
         return db.query(self.model).filter(self.model.slug == slug).first()
