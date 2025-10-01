@@ -83,6 +83,6 @@ class TrendService:
             except Exception as e:
                 print(f"Error processing trend from {entry['link']}: {e}")
 
-    def get_trends(self, db: Session, *, skip: int = 0, limit: int = 100, category: Optional[TrendCategory] = None) -> List[TrendData]:
-        """Retrieve trends with pagination and optional category filtering."""
-        return trend_crud.get_multi(db, skip=skip, limit=limit, category=category)
+    def get_trends(self, db: Session, *, skip: int = 0, limit: int = 100, category: Optional[TrendCategory] = None, search: Optional[str] = None) -> List[TrendData]:
+        """Retrieve trends with pagination, optional category filtering, and search."""
+        return trend_crud.get_multi(db, skip=skip, limit=limit, category=category, search=search)

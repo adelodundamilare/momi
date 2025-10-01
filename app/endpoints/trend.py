@@ -41,6 +41,7 @@ def read_trends(
     skip: int = Query(0, ge=0, description="Number of items to skip"),
     limit: int = Query(100, ge=1, le=200, description="Number of items to return"),
     category: Optional[TrendCategory] = None,
+    search: Optional[str] = Query(None, description="Search term for trend titles and descriptions")
 ):
     """
     Retrieve a list of scraped trends with pagination and category filtering.
