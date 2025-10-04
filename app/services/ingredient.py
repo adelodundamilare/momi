@@ -11,6 +11,10 @@ from app.schemas.supplier import SupplierCreate
 
 logger = logging.getLogger(__name__)
 
+from tenacity import retry, stop_after_attempt, wait_fixed, RetryError
+
+from app.core.database import SessionLocal
+
 class IngredientService:
     def __init__(self, ai_provider: AIProvider):
         self.ai_provider = ai_provider
@@ -25,7 +29,6 @@ class IngredientService:
             )
         new_ingredient = ingredient_crud.create(db, obj_in=ingredient_data)
 
-        # Generate and attach mock suppliers
         num_suppliers = random.randint(0, 10)
         for _ in range(num_suppliers):
             mock_supplier_data = SupplierCreate(
@@ -56,31 +59,38 @@ class IngredientService:
     def get_ingredients(self, db: Session, skip: int = 0, limit: int = 100, search: str | None = None):
         return ingredient_crud.get_multi(db, skip=skip, limit=limit, search=search)
 
-    async def enrich_ingredient_with_ai(self, db: Session, ingredient_id: int):
-        ingredient = self.get_ingredient(db, ingredient_id)
-        if not ingredient:
-            # This should not happen if called from a valid context, but good to have.
-            logger.warning(f"Attempted to enrich non-existent ingredient with ID: {ingredient_id}")
-            return
+    @retry(stop=stop_after_attempt(3), wait=wait_fixed(2))
+    async def enrich_ingredient_with_ai(self, ingredient_id: int):
+        with SessionLocal() as db:
+            ingredient = self.get_ingredient(db, ingredient_id)
+            if not ingredient:
+                logger.warning(f"Attempted to enrich non-existent ingredient with ID: {ingredient_id}")
+                return
 
-        try:
-            ai_generated_data = await self.ai_provider.generate_ingredient_enrichment(ingredient.name)
-            if not ai_generated_data:
-                logger.warning(f"AI provider returned no data for ingredient enrichment: {ingredient.name}")
-                return ingredient
+            try:
+                ai_generated_data = await self.ai_provider.generate_ingredient_enrichment(ingredient.name)
+                if not ai_generated_data:
+                    raise AIProviderError("AI provider returned no data.")
 
-            ingredient_update_data = IngredientUpdate(
-                description=ai_generated_data.description,
-                benefits=ai_generated_data.benefits,
-                claims=ai_generated_data.claims,
-                regulatory_notes=ai_generated_data.regulatory_notes,
-                function=ai_generated_data.function,
-                weight=ai_generated_data.weight,
-                unit=ai_generated_data.unit,
-                allergies=ai_generated_data.allergies,
-            )
-            return ingredient_crud.update(db, db_obj=ingredient, obj_in=ingredient_update_data)
-        except AIProviderError as e:
-            # Log the error but don't let it crash the parent process (e.g., formula generation)
-            logger.error(f"AI enrichment failed for ingredient '{ingredient.name}' (ID: {ingredient_id}): {e}")
-            return ingredient # Return the original ingredient
+                update_data = {
+                    "description": ai_generated_data.description,
+                    "benefits": ai_generated_data.benefits,
+                    "claims": ai_generated_data.claims,
+                    "regulatory_notes": ai_generated_data.regulatory_notes,
+                    "function": ai_generated_data.function,
+                    "weight": ai_generated_data.weight,
+                    "unit": ai_generated_data.unit,
+                    "allergies": ai_generated_data.allergies,
+                    "enrichment_status": "success",
+                    "enrichment_error": None,
+                }
+                ingredient_crud.update(db, db_obj=ingredient, obj_in=update_data)
+
+            except Exception as e:
+                logger.error(f"AI enrichment failed for ingredient '{ingredient.name}' (ID: {ingredient_id}): {e}")
+                update_data = {
+                    "enrichment_status": "failed",
+                    "enrichment_error": str(e),
+                }
+                ingredient_crud.update(db, db_obj=ingredient, obj_in=update_data)
+                raise

@@ -24,5 +24,7 @@ class Ingredient(Base):
     unit = Column(String, nullable=True)
     allergies = Column(String, nullable=True)
     function = Column(String, nullable=True)
+    enrichment_status = Column(String, nullable=False, server_default='pending')
+    enrichment_error = Column(Text, nullable=True)
 
     suppliers = relationship("Supplier", secondary=ingredient_suppliers, back_populates="ingredients")

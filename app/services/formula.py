@@ -34,10 +34,21 @@ class FormulaService:
         except AIProviderError as e:
             raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=f"AI service failed to generate formula details: {e}")
 
+        formula_ingredients_create, enrichment_tasks = self._prepare_ingredients_data(db, ai_formula_details.ingredients)
+
+        if enrichment_tasks:
+            results = await asyncio.gather(*enrichment_tasks, return_exceptions=True)
+            for result in results:
+                if isinstance(result, Exception):
+                    print(f"An enrichment task failed after all retries: {result}")
+
+        return self._create_formula_with_ingredients(db, ai_formula_details, product_concept, formula_ingredients_create, current_user.id)
+
+    def _prepare_ingredients_data(self, db: Session, ai_ingredients: List[Any]):
         formula_ingredients_create = []
         enrichment_tasks = []
 
-        for ai_ingredient in ai_formula_details.ingredients:
+        for ai_ingredient in ai_ingredients:
             ingredient_name = ai_ingredient.name
             quantity = ai_ingredient.quantity
 
@@ -51,11 +62,10 @@ class FormulaService:
                 new_ingredient_data = IngredientCreate(name=ingredient_name, slug=ingredient_slug)
                 created_ingredient = self.ingredient_service.create_ingredient(db, ingredient_data=new_ingredient_data)
                 ingredient_id = created_ingredient.id
-                enrichment_tasks.append(self.ingredient_service.enrich_ingredient_with_ai(db, ingredient_id=created_ingredient.id))
+                enrichment_tasks.append(self.ingredient_service.enrich_ingredient_with_ai(ingredient_id=created_ingredient.id))
             else:
                 ingredient_id = existing_ingredient.id
 
-            supplier_id = None
             cheapest_supplier = supplier_crud.get_cheapest_supplier_for_ingredient(db, ingredient_id)
             if cheapest_supplier:
                 supplier_id = cheapest_supplier.id
@@ -80,22 +90,17 @@ class FormulaService:
                 quantity=quantity,
                 supplier_id=supplier_id
             ))
+        
+        return formula_ingredients_create, enrichment_tasks
 
-        if enrichment_tasks:
-            try:
-                await asyncio.gather(*enrichment_tasks)
-            except AIProviderError as e:
-                # Log the error but don't block formula creation
-                print(f"Warning: AI enrichment failed for some ingredients: {e}")
-
+    def _create_formula_with_ingredients(self, db: Session, ai_formula_details: Any, product_concept: str, ingredients_data: List[FormulaIngredientCreate], author_id: int):
         formula_create_data = FormulaCreate(
             name=ai_formula_details.formula_name,
             description=ai_formula_details.formula_description,
             product_concept=product_concept,
-            ingredients=formula_ingredients_create,
+            ingredients=ingredients_data,
         )
-
-        return formula_crud.create_with_author(db, obj_in=formula_create_data, author_id=current_user.id)
+        return formula_crud.create_with_author(db, obj_in=formula_create_data, author_id=author_id)
 
     def get_formula(self, db: Session, id: int):
         return formula_crud.get(db, id=id)
