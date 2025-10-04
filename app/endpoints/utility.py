@@ -24,6 +24,14 @@ async def upload_to_cloud(
     # current_user: User = Depends(get_current_user),
     # db: Session = Depends(get_db)
 ):
+    # List of allowed image content types
+    allowed_image_types = ["image/jpeg", "image/png"]
+    if file.content_type not in allowed_image_types:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid file type. Only the following are allowed: {', '.join(allowed_image_types)}"
+        )
+
     try:
         file_bytes = await file.read()
         res = cloudinary_service.upload_file(file_bytes)
