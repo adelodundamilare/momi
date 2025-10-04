@@ -122,10 +122,12 @@ class FormulaService:
         ws.append(["Ingredients"])
         ws.append(["Name", "Quantity", "Supplier", "Price per Unit", "Cost"])
 
+        total_cost = 0
         for item in formula.ingredients:
             ingredient = item.ingredient
             supplier = item.supplier
-            cost = item.quantity * supplier.price_per_unit if supplier and supplier.price_per_unit else 0
+            cost = item.quantity * (supplier.price_per_unit or 0) if supplier else 0
+            total_cost += cost
             ws.append(
                 [
                     ingredient.name,
@@ -137,7 +139,7 @@ class FormulaService:
             )
 
         ws.append([])
-        ws.append(["Total Cost", formula.total_cost])
+        ws.append(["Total Cost", total_cost])
 
         excel_file = BytesIO()
         wb.save(excel_file)
@@ -159,10 +161,12 @@ class FormulaService:
         elements.append(Paragraph("<br/><br/>", styles['body']))
 
         data = [["Ingredient", "Quantity", "Supplier", "Price per Unit", "Cost"]]
+        total_cost = 0
         for item in formula.ingredients:
             ingredient = item.ingredient
             supplier = item.supplier
-            cost = item.quantity * supplier.price_per_unit if supplier and supplier.price_per_unit else 0
+            cost = item.quantity * (supplier.price_per_unit or 0) if supplier else 0
+            total_cost += cost
             data.append(
                 [
                     ingredient.name,
@@ -173,7 +177,7 @@ class FormulaService:
                 ]
             )
         
-        data.append(["", "", "", "Total Cost", formula.total_cost])
+        data.append(["", "", "", "Total Cost", total_cost])
 
         table = Table(data)
         style = TableStyle(
