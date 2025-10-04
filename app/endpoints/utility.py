@@ -21,10 +21,7 @@ cloudinary_service = CloudinaryService()
 @router.post("/upload-to-cloud", response_model=APIResponse)
 async def upload_to_cloud(
     file: UploadFile = File(...)
-    # current_user: User = Depends(get_current_user),
-    # db: Session = Depends(get_db)
 ):
-    # List of allowed image content types
     allowed_image_types = ["image/jpeg", "image/png"]
     if file.content_type not in allowed_image_types:
         raise HTTPException(

@@ -7,11 +7,11 @@ class FormulaIngredient(Base):
     __tablename__ = 'formula_ingredients'
     formula_id = Column(Integer, ForeignKey('formulas.id'), primary_key=True)
     ingredient_id = Column(Integer, ForeignKey('ingredients.id'), primary_key=True)
-    supplier_id = Column(Integer, ForeignKey('suppliers.id'), nullable=True) # New field
+    supplier_id = Column(Integer, ForeignKey('suppliers.id'), nullable=True)
     quantity = Column(Float, nullable=False)
 
     ingredient = relationship("Ingredient")
-    supplier = relationship("Supplier") # New relationship
+    supplier = relationship("Supplier")
 
 class Formula(Base):
     __tablename__ = "formulas"
