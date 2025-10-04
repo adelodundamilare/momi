@@ -79,7 +79,7 @@ def get_bookmarked_suppliers(
     Retrieve bookmarked suppliers for the current user.
     """
     try:
-        bookmarked = db.query(Supplier).join(BookmarkedSupplier, BookmarkedSupplier.supplier_id == Supplier.id).filter(BookmarkedSupplier.user_id == current_user.id).all()
+        bookmarked = current_user.bookmarked_suppliers
         bookmarked_response = [Supplier.from_orm(b) for b in bookmarked]
         return APIResponse(message="Bookmarked suppliers retrieved successfully", data=bookmarked_response)
     except Exception as e:

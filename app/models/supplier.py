@@ -19,3 +19,4 @@ class Supplier(Base):
     us_approved_status = Column(Boolean, default=False)
 
     ingredients = relationship("Ingredient", secondary=ingredient_suppliers, back_populates="suppliers")
+    bookmarked_by = relationship("BookmarkedSupplier", back_populates="supplier", cascade="all, delete-orphan")

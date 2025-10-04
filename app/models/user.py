@@ -1,4 +1,6 @@
 from sqlalchemy import Boolean, Column, String, Integer, DateTime
+from sqlalchemy.orm import relationship
+from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.sql import func
 from app.core.database import Base
 
@@ -17,3 +19,6 @@ class User(Base):
     reset_code_expires_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    bookmarks = relationship("BookmarkedSupplier", back_populates="user", cascade="all, delete-orphan")
+    bookmarked_suppliers = association_proxy("bookmarks", "supplier")
