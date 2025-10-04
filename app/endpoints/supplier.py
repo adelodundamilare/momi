@@ -8,14 +8,13 @@ from app.crud.supplier import supplier
 from app.schemas.utility import APIResponse
 from app.utils.deps import get_current_user
 from app.models.user import User
-from app.models.bookmarked_supplier import BookmarkedSupplier
-from app.crud.bookmarked_supplier import bookmarked_supplier
-from app.schemas.bookmarked_supplier import BookmarkedSupplierCreate
+from app.services.supplier import SupplierService
 from app.utils.logger import setup_logger
 
 logger = setup_logger("supplier_api", "supplier.log")
 
 router = APIRouter()
+supplier_service = SupplierService()
 
 @router.get("/", response_model=APIResponse)
 def read_suppliers(
@@ -63,23 +62,23 @@ def bookmark_supplier(
     Bookmark a supplier for the current user.
     """
     try:
-        obj_in = BookmarkedSupplierCreate(user_id=current_user.id, supplier_id=supplier_id)
-        bookmarked_supplier.create(db, obj_in=obj_in)
-        return APIResponse(message="Supplier bookmarked successfully")
+        action = supplier_service.bookmark_supplier(db=db, supplier_id=supplier_id, current_user=current_user)
+        return APIResponse(message=f"Supplier {action} successfully")
+    except HTTPException as e:
+        raise e
     except Exception as e:
         logger.error(f"Error in bookmark_supplier: {str(e)}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 @router.get("/bookmarked", response_model=APIResponse)
 def get_bookmarked_suppliers(
-    db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """
     Retrieve bookmarked suppliers for the current user.
     """
     try:
-        bookmarked = current_user.bookmarked_suppliers
+        bookmarked = supplier_service.get_bookmarked_suppliers(current_user=current_user)
         bookmarked_response = [Supplier.from_orm(b) for b in bookmarked]
         return APIResponse(message="Bookmarked suppliers retrieved successfully", data=bookmarked_response)
     except Exception as e:
