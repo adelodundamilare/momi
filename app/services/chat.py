@@ -22,14 +22,14 @@ class ChatService:
         if trends:
             context_parts.append("Relevant Trends:\n")
             for trend in trends:
-                context_parts.append(f"- Title: {trend.title}\n  Content: {trend.content[:200]}...") # Truncate content
+                context_parts.append(f"- Title: {trend.title}\n  Content: {(trend.description or '')[:200]}...")
 
         # Search for relevant ingredients
         ingredients = ingredient_crud.get_multi(db, search=query, limit=2) # Limit to 2 relevant ingredients
         if ingredients:
             context_parts.append("Relevant Ingredients:\n")
             for ingredient in ingredients:
-                context_parts.append(f"- Name: {ingredient.name}\n  Description: {ingredient.description[:200]}...") # Truncate description
+                context_parts.append(f"- Name: {ingredient.name}\n  Description: {(ingredient.description or '')[:200]}...") # Truncate description
 
         return "\n".join(context_parts)
 
