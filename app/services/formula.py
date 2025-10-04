@@ -157,8 +157,8 @@ class FormulaService:
         styles = getSampleStyleSheet()
 
         elements.append(Paragraph(f"Formula: {formula.name}", styles['h1']))
-        elements.append(Paragraph(f"Description: {formula.description}", styles['body']))
-        elements.append(Paragraph("<br/><br/>", styles['body']))
+        elements.append(Paragraph(f"Description: {formula.description}", styles['Normal']))
+        elements.append(Paragraph("<br/><br/>", styles['Normal']))
 
         data = [["Ingredient", "Quantity", "Supplier", "Price per Unit", "Cost"]]
         total_cost = 0
