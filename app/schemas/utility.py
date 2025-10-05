@@ -1,6 +1,8 @@
 from pydantic import BaseModel
-from typing import Any, Optional
+from typing import Any, Optional, Generic, TypeVar
 
-class APIResponse(BaseModel):
+T = TypeVar('T')
+
+class APIResponse(BaseModel, Generic[T]):
     message: str
-    data: Optional[Any] = None
+    data: Optional[T] = None

@@ -16,6 +16,17 @@ class CRUDFormula(CRUDBase[Formula, FormulaCreate, FormulaUpdate]):
             .first()
         )
 
+    def get_with_full_details(self, db: Session, id: int) -> Optional[Formula]:
+        from app.models.ingredient import Ingredient
+        return (
+            db.query(self.model)
+            .options(
+                joinedload(self.model.ingredients).joinedload(FormulaIngredient.ingredient).joinedload(Ingredient.suppliers)
+            )
+            .filter(self.model.id == id)
+            .first()
+        )
+
     def create_with_author(
         self, db: Session, *, obj_in: FormulaCreate, author_id: int
     ) -> Formula:

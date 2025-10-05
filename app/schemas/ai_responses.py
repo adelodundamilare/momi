@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import List, Dict, Optional
+from app.schemas.commercial_workflow_analysis import Risk, Recommendation, Task, AITimelineOutput
 
 # --- For generate_summary_and_sentiment ---
 class AISummaryAndSentiment(BaseModel):
@@ -17,12 +18,12 @@ class AITrendData(BaseModel):
     keywords: List[str]
     category: str
     sentiment: str
-    impact_score: int = Field(..., ge=1, le=10, description="Impact score from 1 to 10, 10 being highest.")
+    impact_score: int = Field(..., ge=1, le=10)
 
 # --- For generate_trend_category_and_tags ---
 class AITrendCategoryAndTags(BaseModel):
-    category: str = Field(..., description="The determined category for the trend.")
-    tags: List[str] = Field(..., description="A list of relevant tags or keywords for the trend.")
+    category: str = Field(...)
+    tags: List[str] = Field(...)
 
 # --- For generate_ingredient_enrichment ---
 class AIIngredientEnrichment(BaseModel):
@@ -67,3 +68,9 @@ class AIFormulaDetails(BaseModel):
     formula_name: str
     formula_description: str
     ingredients: List[AIFormulaIngredient]
+
+# --- For Commercialization Workflow Analysis ---
+class AICommercializationInsights(BaseModel):
+    timeline_data: AITimelineOutput
+    risks: List[Risk]
+    recommendations: List[Recommendation]

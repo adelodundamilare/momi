@@ -1,58 +1,117 @@
-from datetime import date, timedelta
-from typing import List
-import random
+from typing import List, Dict, Any
+from sqlalchemy.orm import Session, joinedload
+import json
+from datetime import datetime
+import asyncio
 
-from app.schemas.commercial_workflow import (
-    CommercialWorkflowRequest,
-    CommercialWorkflowResponse,
-    TimelineStep,
-    CoManufacturer
+from app.models.formula import Formula, FormulaIngredient
+from app.models.ingredient import Ingredient
+from app.models.supplier import Supplier
+from app.schemas.commercial_workflow_analysis import (
+    CommercializationAnalysisOutput,
+    WorkflowRequest,
+    PackagingSpec,
+    Task
 )
+from app.schemas.ai_responses import AICommercializationInsights
+from app.services.ai_provider import OpenAIProvider, AIProviderError
+from app.crud.formula import formula as formula_crud
 
 class CommercialWorkflowService:
-    def generate_workflow_estimate(self, request: CommercialWorkflowRequest) -> CommercialWorkflowResponse:
-        # Mock Timeline Generation
-        today = date.today()
-        timeline = []
+    def __init__(self, ai_provider: OpenAIProvider = OpenAIProvider()):
+        self.ai_provider = ai_provider
 
-        # Define fixed steps and their mock durations
-        steps_data = [
-            {"name": "Sourcing", "duration_days": 30},
-            {"name": "Prototype", "duration_days": 45},
-            {"name": "Testing", "duration_days": 60},
-            {"name": "Launch", "duration_days": 15}
-        ]
+    async def analyze_formula(self, db: Session, formula_id: int) -> CommercializationAnalysisOutput:
+        formula = formula_crud.get_with_full_details(db, id=formula_id)
 
-        current_date = today
-        for step in steps_data:
-            start_date = current_date
-            end_date = start_date + timedelta(days=step["duration_days"])
-            timeline.append(TimelineStep(name=step["name"], start_date=start_date, end_date=end_date))
-            current_date = end_date + timedelta(days=random.randint(5, 10)) # Add a small gap
+        if not formula:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Formula not found")
 
-        # Mock Co-Manufacturer Selection
-        all_co_manufacturers = [
-            CoManufacturer(name="Global Food Co-Packers", location="California, USA"),
-            CoManufacturer(name="EuroBlend Solutions", location="Berlin, Germany"),
-            CoManufacturer(name="Asia Pacific Innovations", location="Singapore"),
-            CoManufacturer(name="Flavor Fusion Labs", location="Ohio, USA"),
-        ]
-
-        # Select 1 or 2 random co-manufacturers
-        num_manufacturers = random.randint(1, 2)
-        selected_co_manufacturers = random.sample(all_co_manufacturers, num_manufacturers)
-
-        # Mock data for new fields
-        estimated_launch = timeline[-1].end_date
-        timeline_summary = f"The project is estimated to be completed by {estimated_launch}."
-        optimized_timeline = timeline # In a real scenario, this would be different
-        ai_risk_callout = "Potential supply chain disruption due to high demand for a key ingredient."
-
-        return CommercialWorkflowResponse(
-            estimated_launch=estimated_launch,
-            timeline_summary=timeline_summary,
-            optimized_timeline=optimized_timeline,
-            ai_risk_callout=ai_risk_callout,
-            timeline=timeline,
-            co_manufacturers=selected_co_manufacturers
+        ingredients_for_ai = []
+        for fi in formula.ingredients:
+            supplier_name = fi.supplier.full_name if fi.supplier else None
+            lead_time = self._parse_delivery_duration(fi.supplier.delivery_duration) if fi.supplier and fi.supplier.delivery_duration else None
+            cost_per_unit = fi.supplier.price_per_unit if fi.supplier else None
+            ingredients_for_ai.append(AIWorkflowIngredient(
+                name=fi.ingredient.name,
+                quantity=fi.quantity,
+                unit=fi.ingredient.unit or "unit",
+                supplier=supplier_name,
+                lead_time_days=lead_time,
+                cost_per_unit=cost_per_unit
+            ))
+        
+        packaging_spec = PackagingSpec(
+            type="Bottle",
+            size="500ml",
+            material="Glass",
+            supplier="Generic Packaging Co."
         )
+
+        workflow_request = WorkflowRequest(
+            product_id=str(formula.id),
+            product_name=formula.name,
+            ingredients=ingredients_for_ai,
+            packaging=packaging_spec,
+            target_volume=10000,
+            batch_size=1000,
+            target_launch_date=None,
+            budget_limit=None,
+            market="US"
+        )
+
+        try:
+            ai_insights_task = self.ai_provider.generate_commercialization_insights(
+                formula_name=workflow_request.product_name,
+                formula_description=formula.description,
+                master_tasks_data=[t.model_dump() for t in self._define_base_tasks().values()]
+            )
+
+            supplier_analysis_task = self.ai_provider.generate_supplier_analysis(workflow_request.model_dump())
+            cost_analysis_task = self.ai_provider.generate_cost_analysis(workflow_request.model_dump())
+
+            ai_insights, supplier_analysis, cost_analysis = await asyncio.gather(
+                ai_insights_task,
+                supplier_analysis_task,
+                cost_analysis_task
+            )
+        except AIProviderError as e:
+            raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=f"AI service failed: {e}")
+
+        return CommercializationAnalysisOutput(
+            product_id=workflow_request.product_id,
+            product_name=workflow_request.product_name,
+            generated_at=datetime.utcnow().isoformat(),
+            timeline_data=ai_insights.timeline_data,
+            risks=ai_insights.risks,
+            recommendations=ai_insights.recommendations,
+            supplier_analysis=supplier_analysis,
+            cost_analysis=cost_analysis
+        )
+
+    def _define_base_tasks(self) -> Dict[str, Task]:
+        return {
+            "ingredient_procurement": Task(stage_name="Ingredient Procurement", duration_weeks=0, can_parallelize=False, dependencies=[], tasks=[], notes=""),
+            "production_setup": Task(stage_name="Production Setup", duration_weeks=0, can_parallelize=False, dependencies=["ingredient_procurement"], tasks=[], notes=""),
+            "manufacturing": Task(stage_name="Manufacturing", duration_weeks=0, can_parallelize=False, dependencies=["production_setup"], tasks=[], notes=""),
+            "packaging": Task(stage_name="Packaging", duration_weeks=0, can_parallelize=True, dependencies=["manufacturing"], tasks=[], notes=""),
+            "quality_assurance": Task(stage_name="Quality Assurance", duration_weeks=0, can_parallelize=False, dependencies=["manufacturing"], tasks=[], notes=""),
+            "distribution_setup": Task(stage_name="Distribution Setup", duration_weeks=0, can_parallelize=True, dependencies=["packaging"], tasks=[], notes=""),
+            "launch_preparation": Task(stage_name="Launch Preparation", duration_weeks=0, can_parallelize=False, dependencies=["quality_assurance", "distribution_setup"], tasks=[], notes=""),
+        }
+
+    def _parse_delivery_duration(self, duration_str: str) -> int:
+        duration_str = duration_str.lower()
+        if "day" in duration_str:
+            if "-" in duration_str:
+                parts = duration_str.split("-")
+                return (int(parts[0].strip()) + int(parts[1].split(" ")[0].strip())) // 2
+            else:
+                return int(duration_str.split(" ")[0].strip())
+        elif "week" in duration_str:
+            if "-" in duration_str:
+                parts = duration_str.split("-")
+                return ((int(parts[0].strip()) + int(parts[1].split(" ")[0].strip())) // 2) * 7
+            else:
+                return int(duration_str.split(" ")[0].strip()) * 7
+        return 0

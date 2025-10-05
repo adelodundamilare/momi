@@ -9,6 +9,7 @@ from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_excep
 from app.core.config import settings
 from app.schemas.chat import Message
 from app.schemas.ai_responses import (
+    AICommercializationInsights,
     AISummaryAndSentiment,
     AITrendSignals,
     AIIngredientEnrichment,
@@ -69,6 +70,14 @@ class AIProvider(ABC):
     async def extract_trend_data(self, article_title: str, article_content: str) -> AITrendData:
         pass
 
+    @abstractmethod
+    async def generate_supplier_analysis(self, workflow_request_data: Dict[str, Any]) -> Dict[str, Any]:
+        pass
+
+    @abstractmethod
+    async def generate_cost_analysis(self, workflow_request_data: Dict[str, Any]) -> Dict[str, Any]:
+        pass
+
 class OpenAIProvider(AIProvider):
     def __init__(self):
         self.client = openai.AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
@@ -119,7 +128,7 @@ class OpenAIProvider(AIProvider):
             logger.error(f"An unexpected error occurred in the AI call: {e}")
             raise AIProviderError("An unexpected error occurred.") from e
 
-    async def generate_chat_completion(self, messages: List[Message]) -> Iterator[str]:
+    async def generate_chat_completion(self, messages: List[Message]) -> Iterator[str]: # type: ignore
         # Chat completion is not retried in the same way, as it's a stream.
         message_dicts = [msg.dict() for msg in messages]
         try:
@@ -211,3 +220,32 @@ class OpenAIProvider(AIProvider):
         system_prompt = self._create_prompt_from_model(AITrendCategoryAndTags, instruction)
         user_prompt = f"Article Title: {article_title}\nArticle Content: {article_content}"
         return await self._make_ai_call(system_prompt, user_prompt, AITrendCategoryAndTags)
+
+        async def generate_commercialization_insights(
+            self,
+            formula_name: str,
+            formula_description: str,
+            master_tasks_data: List[Dict[str, Any]]
+        ) -> AICommercializationInsights:
+            instruction = prompt_templates.COMMERCIALIZATION_INSIGHTS_INSTRUCTION
+            system_prompt = self._create_prompt_from_model(AICommercializationInsights, instruction)
+            
+            user_prompt = (
+                f"Analyze the following commercialization workflow for a product.\n\n"
+                f"Product: {formula_name}\n"
+                f"Description: {formula_description}\n\n"
+                f"Defined Tasks (predict durations for these): {json.dumps(master_tasks_data, indent=2)}\n\n"
+                "Based on this information, predict accurate durations for each task, identify all potential risks, and generate comprehensive recommendations to optimize the workflow, reduce risks, and improve the timeline. Focus on actionable insights."
+            )
+            return await self._make_ai_call(system_prompt, user_prompt, AICommercializationInsights)
+    async def generate_supplier_analysis(self, workflow_request_data: Dict[str, Any]) -> Dict[str, Any]:
+        instruction = prompt_templates.SUPPLIER_ANALYSIS_INSTRUCTION
+        system_prompt = self._create_prompt_from_model(Dict[str, Any], instruction) # Using Dict[str, Any] for now, will define specific schema later
+        user_prompt = f"Analyze suppliers for the following workflow request: {json.dumps(workflow_request_data, indent=2)}"
+        return await self._make_ai_call(system_prompt, user_prompt, Dict[str, Any])
+
+    async def generate_cost_analysis(self, workflow_request_data: Dict[str, Any]) -> Dict[str, Any]:
+        instruction = prompt_templates.COST_ANALYSIS_INSTRUCTION
+        system_prompt = self._create_prompt_from_model(Dict[str, Any], instruction) # Using Dict[str, Any] for now, will define specific schema later
+        user_prompt = f"Calculate costs for the following workflow request: {json.dumps(workflow_request_data, indent=2)}"
+        return await self._make_ai_call(system_prompt, user_prompt, Dict[str, Any])

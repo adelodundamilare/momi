@@ -62,7 +62,7 @@ def get_image_prompt_details(category: str) -> dict:
 
 SUMMARY_AND_SENTIMENT_INSTRUCTION = "You are an expert analyst. Analyze the provided article and provide a concise, one-paragraph summary and a sentiment analysis (Positive, Negative, or Neutral)."
 TREND_SIGNALS_INSTRUCTION = "You are an expert in food market trends. Analyze the provided social media posts and identify trend signals. A trend signal is an ingredient, product, or concept with an upward (^) or downward (v) trend."
-INGREDIENT_ENRICHMENT_INSTRUCTION = "You are an expert in food ingredients. For the ingredient '{ingredient_name}', provide a detailed enrichment covering its description, benefits, common claims, regulatory notes, function, and typical allergies."
+INGREDIENT_ENRICHMENT_INSTRUCTION = "You are an expert in food ingredients. For the ingredient '{ingredient_name}', provide a detailed enrichment covering its description, benefits, common claims, regulatory notes, function, unit, weight, and typical allergies."
 INSIGHT_PORTAL_INSTRUCTION = "You are an AI assistant specializing in food and beverage market analysis. For the ingredient '{ingredient_name}', generate a comprehensive market insight report."
 FORMULA_DETAILS_INSTRUCTION = "You are an AI assistant for food and beverage formula development. For the given product concept, generate a plausible formula."
 MARKETING_COPY_INSTRUCTION = "You are an expert in product marketing for the food and beverage industry. Based on the formula name and description, generate compelling marketing copy. This should include a product name, tagline, key features, a marketing paragraph, a list of common nutritional facts (like Total Fat, Sodium, Carbohydrates, and Protein) with their amount per serving and percentage of daily value, estimated cost per unit and batch, potential savings, suggestions for improvement, allergen alerts, and a sustainability score with contributing factors."
@@ -115,5 +115,33 @@ DEFAULT_AGENT_SYSTEM_PROMPT = (
     "Context:\n{context}"
 )
 
+COMMERCIALIZATION_INSIGHTS_INSTRUCTION = (
+    "You are an expert commercialization strategist and risk analyst for the food and beverage industry. "
+    "Your task is to analyze a product formula's commercialization workflow. "
+    "Based on this analysis, you must: "
+    "1. Predict the duration in weeks for each of the provided commercialization tasks, considering the product and its description. "
+    "2. Identify all potential risks related to suppliers, production, timeline, or quality. For each risk, provide a level (low/medium/high), impact assessment (e.g., '2 weeks delay', '5% cost increase'), and a clear mitigation strategy. "
+    "3. Generate comprehensive, actionable recommendations to optimize the workflow, reduce identified risks, and improve the overall timeline. For each recommendation, provide a clear description and quantify its potential impact (e.g., 'Reduces timeline by 2 weeks', 'Reduces cost by 5%'). "
+    "Your analysis should be insightful, practical, and strictly adhere to the provided JSON schema for tasks, risks, and recommendations."
+)
 
+SUPPLIER_ANALYSIS_INSTRUCTION = (
+    "You are a procurement specialist. Analyze supplier options for the provided ingredients and product details. "
+    "For each ingredient, suggest: "
+    "1. Current supplier assessment (reliability, cost, lead time) "
+    "2. Alternative suppliers (domestic vs international) "
+    "3. Trade-offs (cost vs speed vs reliability) "
+    "4. Recommendations with specific reasoning. "
+    "Return as a JSON object with supplier analysis for each ingredient."
+)
 
+COST_ANALYSIS_INSTRUCTION = (
+    "You are a cost analyst. Calculate comprehensive costs for the provided product and workflow details. "
+    "Calculate: "
+    "1. Cost per unit (ingredients + packaging + labor + overhead) "
+    "2. Batch cost "
+    "3. Total project cost "
+    "4. Cost breakdown by category "
+    "5. Potential savings opportunities. "
+    "Return detailed cost analysis as a JSON object."
+)
