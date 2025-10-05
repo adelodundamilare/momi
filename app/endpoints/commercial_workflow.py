@@ -13,7 +13,7 @@ router = APIRouter()
 service = CommercialWorkflowService()
 
 @router.get("/formulas/{formula_id}/analyze", response_model=APIResponse[CommercializationAnalysisOutput])
-def analyze_formula_workflow(
+async def analyze_formula_workflow(
     formula_id: int,
     db: Session = Depends(get_db)
 ):
@@ -22,7 +22,7 @@ def analyze_formula_workflow(
     timelines, risk analysis, and recommendations.
     """
     try:
-        analysis = service.analyze_formula(db=db, formula_id=formula_id)
+        analysis = await service.analyze_formula(db=db, formula_id=formula_id)
         return APIResponse(message="Commercialization analysis generated successfully", data=analysis)
     except Exception as e:
         logger.error(f"Error in analyze_formula_workflow: {str(e)}")

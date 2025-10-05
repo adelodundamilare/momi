@@ -1,19 +1,16 @@
-from typing import List, Dict, Any
-from sqlalchemy.orm import Session, joinedload
-import json
+from fastapi import HTTPException, status
+from typing import Dict
+from sqlalchemy.orm import Session
 from datetime import datetime
 import asyncio
 
-from app.models.formula import Formula, FormulaIngredient
-from app.models.ingredient import Ingredient
-from app.models.supplier import Supplier
 from app.schemas.commercial_workflow_analysis import (
+    AIWorkflowIngredient,
     CommercializationAnalysisOutput,
     WorkflowRequest,
     PackagingSpec,
     Task
 )
-from app.schemas.ai_responses import AICommercializationInsights
 from app.services.ai_provider import OpenAIProvider, AIProviderError
 from app.crud.formula import formula as formula_crud
 
@@ -40,7 +37,7 @@ class CommercialWorkflowService:
                 lead_time_days=lead_time,
                 cost_per_unit=cost_per_unit
             ))
-        
+
         packaging_spec = PackagingSpec(
             type="Bottle",
             size="500ml",
@@ -82,11 +79,11 @@ class CommercialWorkflowService:
             product_id=workflow_request.product_id,
             product_name=workflow_request.product_name,
             generated_at=datetime.utcnow().isoformat(),
-            timeline_data=ai_insights.timeline_data,
+            timeline_data=ai_insights.timeline_data.model_dump(),
             risks=ai_insights.risks,
             recommendations=ai_insights.recommendations,
-            supplier_analysis=supplier_analysis,
-            cost_analysis=cost_analysis
+            supplier_analysis=supplier_analysis.model_dump(),
+            cost_analysis=cost_analysis.model_dump()
         )
 
     def _define_base_tasks(self) -> Dict[str, Task]:

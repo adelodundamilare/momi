@@ -10,7 +10,9 @@ from app.core.config import settings
 from app.schemas.chat import Message
 from app.schemas.ai_responses import (
     AICommercializationInsights,
+    AICostAnalysisOutput,
     AISummaryAndSentiment,
+    AISupplierAnalysisOutput,
     AITrendSignals,
     AIIngredientEnrichment,
     AIInsightPortalData,
@@ -221,31 +223,32 @@ class OpenAIProvider(AIProvider):
         user_prompt = f"Article Title: {article_title}\nArticle Content: {article_content}"
         return await self._make_ai_call(system_prompt, user_prompt, AITrendCategoryAndTags)
 
-        async def generate_commercialization_insights(
-            self,
-            formula_name: str,
-            formula_description: str,
-            master_tasks_data: List[Dict[str, Any]]
-        ) -> AICommercializationInsights:
-            instruction = prompt_templates.COMMERCIALIZATION_INSIGHTS_INSTRUCTION
-            system_prompt = self._create_prompt_from_model(AICommercializationInsights, instruction)
-            
-            user_prompt = (
-                f"Analyze the following commercialization workflow for a product.\n\n"
-                f"Product: {formula_name}\n"
-                f"Description: {formula_description}\n\n"
-                f"Defined Tasks (predict durations for these): {json.dumps(master_tasks_data, indent=2)}\n\n"
-                "Based on this information, predict accurate durations for each task, identify all potential risks, and generate comprehensive recommendations to optimize the workflow, reduce risks, and improve the timeline. Focus on actionable insights."
-            )
-            return await self._make_ai_call(system_prompt, user_prompt, AICommercializationInsights)
-    async def generate_supplier_analysis(self, workflow_request_data: Dict[str, Any]) -> Dict[str, Any]:
-        instruction = prompt_templates.SUPPLIER_ANALYSIS_INSTRUCTION
-        system_prompt = self._create_prompt_from_model(Dict[str, Any], instruction) # Using Dict[str, Any] for now, will define specific schema later
-        user_prompt = f"Analyze suppliers for the following workflow request: {json.dumps(workflow_request_data, indent=2)}"
-        return await self._make_ai_call(system_prompt, user_prompt, Dict[str, Any])
+    async def generate_commercialization_insights(
+        self,
+        formula_name: str,
+        formula_description: str,
+        master_tasks_data: List[Dict[str, Any]]
+    ) -> AICommercializationInsights:
+        instruction = prompt_templates.COMMERCIALIZATION_INSIGHTS_INSTRUCTION
+        system_prompt = self._create_prompt_from_model(AICommercializationInsights, instruction)
 
-    async def generate_cost_analysis(self, workflow_request_data: Dict[str, Any]) -> Dict[str, Any]:
+        user_prompt = (
+            f"Analyze the following commercialization workflow for a product.\n\n"
+            f"Product: {formula_name}\n"
+            f"Description: {formula_description}\n\n"
+            f"Defined Tasks (predict durations for these): {json.dumps(master_tasks_data, indent=2)}\n\n"
+            "Based on this information, predict accurate durations for each task, identify all potential risks, and generate comprehensive recommendations to optimize the workflow, reduce risks, and improve the timeline. Focus on actionable insights."
+        )
+        return await self._make_ai_call(system_prompt, user_prompt, AICommercializationInsights)
+
+    async def generate_supplier_analysis(self, workflow_request_data: Dict[str, Any]) -> AISupplierAnalysisOutput:
+        instruction = prompt_templates.SUPPLIER_ANALYSIS_INSTRUCTION
+        system_prompt = self._create_prompt_from_model(AISupplierAnalysisOutput, instruction)
+        user_prompt = f"Analyze suppliers for the following workflow request: {json.dumps(workflow_request_data, indent=2)}"
+        return await self._make_ai_call(system_prompt, user_prompt, AISupplierAnalysisOutput)
+
+    async def generate_cost_analysis(self, workflow_request_data: Dict[str, Any]) -> AICostAnalysisOutput:
         instruction = prompt_templates.COST_ANALYSIS_INSTRUCTION
-        system_prompt = self._create_prompt_from_model(Dict[str, Any], instruction) # Using Dict[str, Any] for now, will define specific schema later
+        system_prompt = self._create_prompt_from_model(AICostAnalysisOutput, instruction)
         user_prompt = f"Calculate costs for the following workflow request: {json.dumps(workflow_request_data, indent=2)}"
-        return await self._make_ai_call(system_prompt, user_prompt, Dict[str, Any])
+        return await self._make_ai_call(system_prompt, user_prompt, AICostAnalysisOutput)

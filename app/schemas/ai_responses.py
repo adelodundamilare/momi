@@ -74,3 +74,40 @@ class AICommercializationInsights(BaseModel):
     timeline_data: AITimelineOutput
     risks: List[Risk]
     recommendations: List[Recommendation]
+
+# --- For AI-driven Supplier Analysis ---
+class AISupplierAssessment(BaseModel):
+    reliability: str
+    cost: str
+    lead_time: str
+
+class AIAlternativeSupplier(BaseModel):
+    name: str
+    type: str
+    trade_offs: str
+    recommendation: str
+
+class AISupplierAnalysisIngredient(BaseModel):
+    current_assessment: AISupplierAssessment
+    alternatives: List[AIAlternativeSupplier]
+
+class AISupplierAnalysisOutput(BaseModel):
+    supplier_analysis: Dict[str, AISupplierAnalysisIngredient] # Key is ingredient_name
+
+# --- For AI-driven Cost Analysis ---
+class AICostBreakdown(BaseModel):
+    ingredients: float
+    packaging: float
+    labor: float
+    overhead: float
+
+class AISavingsOpportunity(BaseModel):
+    description: str
+    estimated_savings: float
+
+class AICostAnalysisOutput(BaseModel):
+    cost_per_unit: float
+    batch_cost: float
+    total_project_cost: float
+    cost_breakdown: AICostBreakdown
+    savings_opportunities: List[AISavingsOpportunity]
