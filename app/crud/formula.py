@@ -48,5 +48,17 @@ class CRUDFormula(CRUDBase[Formula, FormulaCreate, FormulaUpdate]):
         db.commit()
         return self.get(db, id=db_formula.id)
 
+    def get_multi(self, db: Session, *, skip: int = 0, limit: int = 100) -> List[Formula]:
+        from app.models.ingredient import Ingredient
+        return (
+            db.query(self.model)
+            .options(
+                joinedload(self.model.ingredients).joinedload(FormulaIngredient.ingredient),
+                joinedload(self.model.ingredients).joinedload(FormulaIngredient.supplier)
+            )
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
 
 formula = CRUDFormula(Formula)
