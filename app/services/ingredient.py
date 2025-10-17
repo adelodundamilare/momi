@@ -27,6 +27,11 @@ class IngredientService:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"An ingredient with the slug '{ingredient_data.slug}' already exists."
             )
+        
+        # Generate a random image URL if not provided
+        if not ingredient_data.image:
+            ingredient_data.image = self.fake.image_url()
+
         new_ingredient = ingredient_crud.create(db, obj_in=ingredient_data)
 
         num_suppliers = random.randint(0, 10)

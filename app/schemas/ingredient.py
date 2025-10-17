@@ -13,6 +13,7 @@ class IngredientBase(BaseModel):
     unit: Optional[str] = None
     allergies: Optional[str] = None
     function: Optional[str] = None
+    image: Optional[str] = None
 
 # Properties to receive on item creation
 class IngredientCreate(IngredientBase):
