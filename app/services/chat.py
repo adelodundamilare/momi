@@ -17,6 +17,10 @@ class ChatService:
     def __init__(self, ai_provider: AIProvider = OpenAIProvider()):
         self.ai_provider = ai_provider
 
+    def create_conversation(self, db: Session, user_id: int, title: Optional[str] = None) -> ConversationModel:
+        conversation = conversation_crud.create(db, obj_in=ConversationCreate(user_id=user_id, title=title))
+        return conversation
+
     def _retrieve_context(self, query: str, db: Session) -> str:
         context_parts = []
 
@@ -34,7 +38,7 @@ class ChatService:
 
         return "\n".join(context_parts)
 
-    def send_streaming_message(self, messages: List[Message], db: Session, agent_type: str, conversation_id: Optional[int], user_id: int) -> Iterator[str]:
+    def send_streaming_message(self, messages: List[Message], db: Session, agent_type: str, conversation_id: int, user_id: int) -> Iterator[str]:
         latest_user_message = messages[-1].content if messages and messages[-1].role == "user" else ""
         context = self._retrieve_context(latest_user_message, db)
 
@@ -46,10 +50,6 @@ class ChatService:
             system_prompt = prompt_templates.DEFAULT_AGENT_SYSTEM_PROMPT.format(context=context)
 
         messages_for_ai = [Message(role="system", content=system_prompt)] + messages
-        
-        if not conversation_id:
-            conversation = conversation_crud.create(db, obj_in=ConversationCreate(user_id=user_id, title=latest_user_message[:50]))
-            conversation_id = conversation.id
         
         for message in messages:
             chat_message_crud.create(db, obj_in=ChatMessageCreate(conversation_id=conversation_id, role=message.role, content=message.content))

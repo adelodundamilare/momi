@@ -20,3 +20,6 @@ class Conversation(ConversationBase):
 
     class Config:
         from_attributes = True
+
+class ConversationCreateRequest(BaseModel):
+    title: Optional[str] = None

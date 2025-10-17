@@ -8,4 +8,4 @@ class Message(BaseModel):
 class ChatRequest(BaseModel):
     messages: List[Message] = Field(..., min_length=1)
     agent_type: str = "innovative"
-    conversation_id: Optional[int] = None
+    conversation_id: int
