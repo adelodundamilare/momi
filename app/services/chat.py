@@ -18,6 +18,8 @@ class ChatService:
         self.ai_provider = ai_provider
 
     def create_conversation(self, db: Session, user_id: int, title: Optional[str] = None) -> ConversationModel:
+        if not title:
+            title = "New Conversation"
         conversation = conversation_crud.create(db, obj_in=ConversationCreate(user_id=user_id, title=title))
         return conversation
 
