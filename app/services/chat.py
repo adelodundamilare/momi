@@ -47,7 +47,7 @@ class ChatService:
 
         messages_for_ai = [Message(role="system", content=system_prompt)] + messages
         
-        if conversation_id is None:
+        if not conversation_id:
             conversation = conversation_crud.create(db, obj_in=ConversationCreate(user_id=user_id, title=latest_user_message[:50]))
             conversation_id = conversation.id
         

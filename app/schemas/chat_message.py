@@ -4,6 +4,7 @@ from datetime import datetime
 class ChatMessageBase(BaseModel):
     role: str
     content: str
+    conversation_id: int
 
 class ChatMessageCreate(ChatMessageBase):
     pass

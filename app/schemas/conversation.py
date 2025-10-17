@@ -7,7 +7,7 @@ class ConversationBase(BaseModel):
     title: Optional[str] = None
 
 class ConversationCreate(ConversationBase):
-    pass
+    user_id: int
 
 class ConversationUpdate(ConversationBase):
     pass
