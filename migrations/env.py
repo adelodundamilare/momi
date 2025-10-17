@@ -13,11 +13,13 @@ from app.models.user import User
 from app.models.formula import Formula
 from app.models.trend import TrendData
 from app.models.news_feed import NewsFeed
-from app.models.chat import ChatHistory
+from app.models.chat_message import ChatMessage
 from app.models.supplier import Supplier
 from app.models.bookmarked_supplier import BookmarkedSupplier
 from app.models.bookmarked_news import BookmarkedNews
 from app.models.marketing import MarketingCopy
+from app.models.token_denylist import TokenDenylist
+from app.models.conversation import Conversation
 
 # Alembic Config object, which provides access to the .ini file values
 config = context.config
