@@ -84,3 +84,21 @@ def get_bookmarked_suppliers(
     except Exception as e:
         logger.error(f"Error in get_bookmarked_suppliers: {str(e)}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+@router.get("/by-ingredient/{ingredient_id}", response_model=APIResponse)
+def get_suppliers_by_ingredient(
+    ingredient_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Retrieve a list of suppliers for a given ingredient.
+    """
+    try:
+        suppliers = supplier_service.get_suppliers_by_ingredient(db, ingredient_id)
+        suppliers_response = [Supplier.from_orm(s) for s in suppliers]
+        return APIResponse(message="Suppliers retrieved successfully", data=suppliers_response)
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logger.error(f"Error in get_suppliers_by_ingredient: {str(e)}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))

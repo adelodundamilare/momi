@@ -59,6 +59,26 @@ class IngredientService:
     def get_ingredients(self, db: Session, skip: int = 0, limit: int = 100, search: str | None = None):
         return ingredient_crud.get_multi(db, skip=skip, limit=limit, search=search)
 
+    def add_supplier_to_ingredient(self, db: Session, ingredient_id: int, supplier_id: int):
+        ingredient = ingredient_crud.get(db, id=ingredient_id)
+        if not ingredient:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ingredient not found")
+        supplier = supplier_crud.get(db, id=supplier_id)
+        if not supplier:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Supplier not found")
+        
+        return ingredient_crud.add_supplier(db, ingredient, supplier)
+
+    def remove_supplier_from_ingredient(self, db: Session, ingredient_id: int, supplier_id: int):
+        ingredient = ingredient_crud.get(db, id=ingredient_id)
+        if not ingredient:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ingredient not found")
+        supplier = supplier_crud.get(db, id=supplier_id)
+        if not supplier:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Supplier not found")
+        
+        return ingredient_crud.remove_supplier(db, ingredient, supplier)
+
     @retry(stop=stop_after_attempt(3), wait=wait_fixed(2))
     async def enrich_ingredient_with_ai(self, ingredient_id: int):
         with SessionLocal() as db:

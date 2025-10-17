@@ -15,4 +15,18 @@ class CRUDIngredient(CRUDBase[Ingredient, IngredientCreate, IngredientUpdate]):
             query = query.filter(self.model.name.ilike(f"%{search}%"))
         return query.offset(skip).limit(limit).all()
 
+    def add_supplier(self, db: Session, ingredient: Ingredient, supplier: "Supplier") -> Ingredient:
+        if supplier not in ingredient.suppliers:
+            ingredient.suppliers.append(supplier)
+            db.commit()
+            db.refresh(ingredient)
+        return ingredient
+
+    def remove_supplier(self, db: Session, ingredient: Ingredient, supplier: "Supplier") -> Ingredient:
+        if supplier in ingredient.suppliers:
+            ingredient.suppliers.remove(supplier)
+            db.commit()
+            db.refresh(ingredient)
+        return ingredient
+
 ingredient = CRUDIngredient(Ingredient)

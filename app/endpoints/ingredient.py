@@ -111,4 +111,39 @@ def get_ingredient_price_chart(
         logger.error(f"Error in get_ingredient_price_chart: {str(e)}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
+@router.post("/{ingredient_id}/suppliers/{supplier_id}", response_model=APIResponse)
+def add_supplier_to_ingredient(
+    ingredient_id: int,
+    supplier_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Associate a supplier with an ingredient.
+    """
+    try:
+        ingredient = ingredient_service.add_supplier_to_ingredient(db, ingredient_id, supplier_id)
+        return APIResponse(message="Supplier associated with ingredient successfully", data=Ingredient.from_orm(ingredient))
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logger.error(f"Error in add_supplier_to_ingredient: {str(e)}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+@router.delete("/{ingredient_id}/suppliers/{supplier_id}", response_model=APIResponse)
+def remove_supplier_from_ingredient(
+    ingredient_id: int,
+    supplier_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Disassociate a supplier from an ingredient.
+    """
+    try:
+        ingredient = ingredient_service.remove_supplier_from_ingredient(db, ingredient_id, supplier_id)
+        return APIResponse(message="Supplier disassociated from ingredient successfully", data=Ingredient.from_orm(ingredient))
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logger.error(f"Error in remove_supplier_from_ingredient: {str(e)}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
