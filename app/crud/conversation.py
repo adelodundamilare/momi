@@ -8,4 +8,7 @@ class CRUDConversation(CRUDBase[Conversation, ConversationCreate, ConversationUp
     def get_by_user_id(self, db: Session, *, user_id: int) -> List[Conversation]:
         return db.query(self.model).filter(self.model.user_id == user_id).all()
 
+    def get_by_user_id_sorted(self, db: Session, *, user_id: int) -> List[Conversation]:
+        return db.query(self.model).filter(self.model.user_id == user_id).order_by(self.model.created_at.desc()).all()
+
 conversation = CRUDConversation(Conversation)

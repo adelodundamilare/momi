@@ -40,7 +40,7 @@ class ChatService:
 
         return "\n".join(context_parts)
 
-    def send_streaming_message(self, messages: List[Message], db: Session, agent_type: str, conversation_id: int, user_id: int) -> Iterator[str]:
+    async def send_streaming_message(self, messages: List[Message], db: Session, agent_type: str, conversation_id: int, user_id: int) -> Iterator[str]:
         latest_user_message = messages[-1].content if messages and messages[-1].role == "user" else ""
         context = self._retrieve_context(latest_user_message, db)
 
@@ -56,7 +56,14 @@ class ChatService:
         for message in messages:
             chat_message_crud.create(db, obj_in=ChatMessageCreate(conversation_id=conversation_id, role=message.role, content=message.content))
 
-        return self.ai_provider.generate_chat_completion(messages_for_ai)
+        full_ai_response_content = []
+        
+        async for chunk in self.ai_provider.generate_chat_completion(messages_for_ai):
+            full_ai_response_content.append(chunk)
+            yield chunk
+        
+        ai_response_content = "".join(full_ai_response_content)
+        chat_message_crud.create(db, obj_in=ChatMessageCreate(conversation_id=conversation_id, role="assistant", content=ai_response_content))
 
     def get_user_conversations(self, db: Session, user_id: int) -> List[ConversationModel]:
-        return conversation_crud.get_by_user_id(db, user_id=user_id)
+        return conversation_crud.get_by_user_id_sorted(db, user_id=user_id)

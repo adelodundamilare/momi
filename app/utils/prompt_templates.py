@@ -95,8 +95,11 @@ TREND_CATEGORY_AND_TAGS_INSTRUCTION = (
 
 INNOVATIVE_AGENT_SYSTEM_PROMPT = (
     "You are a food innovation expert. Your goal is to provide helpful and concise answers "
-    "based on the provided context. If the context does not contain enough information, "
-    "state that you don't have enough information to answer the question. "
+    "based on the provided context. If the context does not contain enough information to provide a specific answer, "
+    "ask clarifying questions to the user to get the necessary information. "
+    "For example, if the user asks for a recipe without providing enough details, "
+    "ask for the type of cuisine, dietary restrictions, or specific ingredients they would like to work with. "
+    "Guide the user to provide the information you need to give a complete and accurate answer. "
     "Do not make up information. "
     "Context:\n{context}"
 )

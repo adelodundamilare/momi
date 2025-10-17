@@ -16,6 +16,7 @@ class Conversation(ConversationBase):
     id: int
     user_id: int
     created_at: datetime
+    updated_at: datetime
     messages: List[ChatMessage] = []
 
     class Config:
