@@ -14,6 +14,16 @@ router = APIRouter()
 
 formula_service = FormulaService(ai_provider=OpenAIProvider())
 
+@router.get("/", response_model=APIResponse)
+def read_all_formulas(
+    db: Session = Depends(get_db),
+):
+    """
+    Retrieve a list of all formulas.
+    """
+    formulas = formula_service.get_all_formulas(db)
+    formulas_response = [Formula.from_orm(formula) for formula in formulas]
+    return APIResponse(message="Formulas retrieved successfully", data=formulas_response)
 
 @router.get("/{id}", response_model=APIResponse)
 def read_formula(*, db: Session = Depends(get_db), id: int):

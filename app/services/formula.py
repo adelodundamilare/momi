@@ -105,7 +105,8 @@ class FormulaService:
     def get_formula(self, db: Session, id: int):
         return formula_crud.get(db, id=id)
 
-    
+    def get_all_formulas(self, db: Session) -> List[Any]:
+        return formula_crud.get_multi(db)
 
     def export_formula_excel(self, db: Session, formula_id: int) -> BytesIO:
         formula = self.get_formula(db, id=formula_id)
