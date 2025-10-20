@@ -1,7 +1,8 @@
 
 import httpx
+import string
+import random
 from typing import Optional
-from app.core.config import settings
 from app.utils.logger import setup_logger
 
 logger = setup_logger("oauth_service", "oauth.log")
@@ -28,5 +29,9 @@ class OAuthService:
         except Exception as e:
             logger.error(f"Apple token verification failed: {str(e)}")
             return None
+
+    def generate_random_password(self, length: int = 12) -> str:
+        characters = string.ascii_letters + string.digits + string.punctuation
+        return ''.join(random.choice(characters) for i in range(length))
 
 oauth_service = OAuthService()

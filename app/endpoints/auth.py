@@ -16,8 +16,7 @@ from app.services.email import EmailService
 from app.utils.logger import setup_logger
 from app.services.user import UserService
 from app.services.auth import AuthService
-from app.utils.deps import get_current_user
-from app.models.user import User
+from app.services.oauth import oauth_service
 from app.schemas.utility import APIResponse
 
 logger = setup_logger("auth_api", "auth.log")
@@ -33,7 +32,7 @@ async def signup(user_data: auth_schema.UserCreate, db: Session = Depends(get_db
     try:
 
         user = user_service.create_user(db, user_data=user_data)
-        
+
         return APIResponse(message="User created successfully", data={"user_id": user.id, "email": user.email})
     except Exception as e:
         logger.error(f"Signup failed: {str(e)}")
@@ -80,7 +79,8 @@ async def google_login(
         if not user:
             user = user_crud.create(
                 db,
-                obj_in=UserCreate(
+                obj_in=auth_schema.UserCreate(
+                    password="".join(oauth_service.generate_random_password()),
                     email=user_data["email"],
                     full_name=user_data["name"],
                     auth_provider="google"
