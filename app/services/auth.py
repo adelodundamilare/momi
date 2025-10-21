@@ -1,3 +1,4 @@
+import secrets
 from fastapi import HTTPException, status
 import random
 import string
@@ -8,25 +9,27 @@ from app.core.security import pwd_context
 user_service = UserService()
 
 class AuthService:
-    def generate_code(self):
-        return ''.join(random.choices(string.digits, k=4))
+    def generate_reset_token(self):
+        return secrets.token_urlsafe(32)
 
     def request_forget_password(self, db, user):
-        reset_code =  self.generate_code()
+        reset_token = self.generate_reset_token()
         user_service.update_user(db, user, user_data={
-            "reset_code": reset_code,
-            "reset_code_expires_at": datetime.utcnow()+ timedelta(minutes=30)
+            "reset_token": reset_token,
+            "reset_token_expires_at": datetime.utcnow() + timedelta(minutes=30)
         })
-        return reset_code
+        return reset_token
 
-    def change_password_via_code(self, db, user, reset_data):
-        if (user.reset_code != reset_data.code or
-           user.reset_code_expires_at is None or
-           user.reset_code_expires_at < datetime.utcnow()
+
+
+    def change_password_via_token(self, db, user, reset_data):
+        if (user.reset_token != reset_data.token or
+           user.reset_token_expires_at is None or
+           user.reset_token_expires_at < datetime.utcnow()
         ):
            raise HTTPException(
                status_code=status.HTTP_401_UNAUTHORIZED,
-               detail="Invalid or expired reset code"
+               detail="Invalid or expired reset token"
            )
 
         hashed_password = pwd_context.hash(reset_data.new_password)
@@ -36,8 +39,8 @@ class AuthService:
        })
 
         user_service.update_user(db, user, {
-           "reset_code": None,
-           "reset_code_expires_at": None
+           "reset_token": None,
+           "reset_token_expires_at": None
        })
 
     def verify_password(self, plain_password, hashed_password):

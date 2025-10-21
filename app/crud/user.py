@@ -18,6 +18,9 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
         db.refresh(db_obj)
         return db_obj
 
+    def get_by_reset_token(self, db: Session, *, token: str) -> Optional[User]:
+        return db.query(User).filter(User.reset_token == token).first()
+
     def authenticate(self, db: Session, *, email: str, password: str) -> Optional[User]:
         user = self.get_by_email(db, email=email)
         if not user:

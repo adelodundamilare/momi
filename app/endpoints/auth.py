@@ -118,13 +118,15 @@ async def apple_login(
 async def request_forgot_password(reset_data: auth_schema.UserEmail, db: Session = Depends(get_db)):
     try:
         user = user_service.find_user_by_email(db, email=reset_data.email)
-        reset_code = auth_service.request_forget_password(db, user)
+        reset_token = auth_service.request_forget_password(db, user)
 
-        if not reset_code:
+        if not reset_token:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Password reset code not generated"
+                detail="Password reset token not generated"
             )
+
+        reset_link = f"{reset_data.frontend_url}?token={reset_token}" if reset_data.frontend_url else reset_token
 
         EmailService.send_email(
             to_email=user.email,
@@ -132,21 +134,23 @@ async def request_forgot_password(reset_data: auth_schema.UserEmail, db: Session
             template_name="reset_password.html",
             template_context={
                 "full_name": user.full_name,
-                "reset_code": reset_code
+                "reset_link": reset_link
             }
         )
 
-        logger.info(f"Password reset code sent to: {user.email}")
-        return APIResponse(message="Reset code sent to email")
+        logger.info(f"Password reset link sent to: {user.email}")
+        return APIResponse(message="Reset link sent to email")
     except Exception as e:
         logger.error(f"Password reset failed: {str(e)}")
         raise
 
-@router.post("/forgot-password", response_model=APIResponse)
-async def forgot_password(reset_data: auth_schema.PasswordResetVerify, db: Session = Depends(get_db)):
+
+
+@router.post("/reset-password", response_model=APIResponse)
+async def reset_password(reset_data: auth_schema.PasswordResetConfirm, db: Session = Depends(get_db)):
     try:
         user = user_service.find_user_by_email(db, email=reset_data.email)
-        auth_service.change_password_via_code(db, user, reset_data)
+        auth_service.change_password_via_token(db, user, reset_data)
 
         EmailService.send_email(
             to_email=user.email,
@@ -154,7 +158,6 @@ async def forgot_password(reset_data: auth_schema.PasswordResetVerify, db: Sessi
             template_name="reset-password-success.html",
             template_context={}
         )
-
 
         return APIResponse(message="Password Reset Successfully")
     except Exception as e:

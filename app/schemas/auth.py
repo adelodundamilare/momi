@@ -26,10 +26,11 @@ class Token(BaseModel):
     access_token: str
     token_type: str
 
-class PasswordResetVerify(BaseModel):
+class PasswordResetConfirm(BaseModel):
     email: EmailStr
-    code: str
+    token: str
     new_password: str
 
 class UserEmail(BaseModel):
     email: EmailStr
+    frontend_url: Optional[str] = None

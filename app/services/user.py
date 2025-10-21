@@ -15,6 +15,15 @@ class UserService:
         # should not change email or password
         return user_crud.update(db, db_obj=user, obj_in=user_data)
 
+    def find_user_by_reset_token(self, db, token):
+        user = user_crud.get_by_reset_token(db, token=token)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Invalid or expired reset token"
+            )
+        return user
+
     def find_user_by_email(self, db, email):
         user = user_crud.get_by_email(db, email=email)
         if not user:
