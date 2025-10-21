@@ -94,24 +94,24 @@ async def google_login(
         logger.error(f"Google login failed: {str(e)}")
         raise
 
-@router.post("/login/apple", response_model=APIResponse)
-async def apple_login(
-    token: str,
-    db: Session = Depends(get_db)
-):
-    try:
-        user_data = await oauth_service.verify_apple_token(token)
-        if not user_data:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid Apple token"
-            )
+# @router.post("/login/apple", response_model=APIResponse)
+# async def apple_login(
+#     token: str,
+#     db: Session = Depends(get_db)
+# ):
+#     try:
+#         user_data = await oauth_service.verify_apple_token(token)
+#         if not user_data:
+#             raise HTTPException(
+#                 status_code=status.HTTP_401_UNAUTHORIZED,
+#                 detail="Invalid Apple token"
+#             )
 
-        # Similar implementation as Google login
-        return APIResponse(message="Apple login successful", data={"access_token": "mock_token", "token_type": "bearer"}) # Mock data for now
-    except Exception as e:
-        logger.error(f"Apple login failed: {str(e)}")
-        raise
+#         # Similar implementation as Google login
+#         return APIResponse(message="Apple login successful", data={"access_token": "mock_token", "token_type": "bearer"}) # Mock data for now
+#     except Exception as e:
+#         logger.error(f"Apple login failed: {str(e)}")
+#         raise
 
 
 @router.post("/request-forgot-password", response_model=APIResponse)
@@ -134,7 +134,8 @@ async def request_forgot_password(reset_data: auth_schema.UserEmail, db: Session
             template_name="reset_password.html",
             template_context={
                 "full_name": user.full_name,
-                "reset_link": reset_link
+                "reset_link": reset_link,
+                "reset_token": reset_token
             }
         )
 

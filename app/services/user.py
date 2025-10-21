@@ -12,11 +12,11 @@ class UserService:
         return user_crud.create(db, obj_in=user_data)
 
     def update_user(self, db, user, user_data):
-        if any(key in user_data for key in ['email', 'password', 'hashed_password']):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Email and password cannot be updated through this endpoint."
-            )
+        # if any(key in user_data for key in ['email', 'password', 'hashed_password']):
+        #     raise HTTPException(
+        #         status_code=status.HTTP_400_BAD_REQUEST,
+        #         detail="Email and password cannot be updated through this endpoint."
+        #     )
         return user_crud.update(db, db_obj=user, obj_in=user_data)
 
     def find_user_by_reset_token(self, db, token):
