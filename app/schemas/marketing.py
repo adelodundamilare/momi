@@ -44,6 +44,8 @@ class MarketingCopyBase(BaseModel):
     suggestions: List[str]
     allergen_alerts: AllergenAlerts
     sustainability: Sustainability
+    calories: Optional[int] = None
+    serving_size_per_bottle: Optional[str] = None
 
 
 class AIMarketingCopy(BaseModel):
@@ -57,7 +59,9 @@ class AIMarketingCopy(BaseModel):
     potential_savings: PotentialSavings = Field(..., description="Potential cost savings.")
     suggestions: List[str] = Field(..., description="Suggestions for improvement or alternatives.")
     allergen_alerts: AllergenAlerts = Field(..., description="Allergen detection and alerts.")
-    sustainability: Sustainability = Field(..., description="Sustainability score and factors.")
+    sustainability: Sustainability
+    calories: Optional[int] = None
+    serving_size_per_bottle: Optional[str] = None
 
 
 class MarketingCopyCreate(MarketingCopyBase):
