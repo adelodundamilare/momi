@@ -51,7 +51,7 @@ class MarketingCopyBase(BaseModel):
     sustainability: Sustainability
     calories: Optional[int] = None
     serving_size_per_bottle: Optional[str] = None
-    suppliers_index: List[SupplierInfo]
+    suppliers_index: Optional[List[SupplierInfo]] = None
 
 
 class AIMarketingCopy(BaseModel):
@@ -68,7 +68,7 @@ class AIMarketingCopy(BaseModel):
     sustainability: Sustainability
     calories: Optional[int] = None
     serving_size_per_bottle: Optional[str] = None
-    random_suppliers: List[SupplierInfo]
+    suppliers_index: Optional[List[SupplierInfo]] = None
 
 
 class MarketingCopyCreate(MarketingCopyBase):
