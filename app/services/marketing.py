@@ -51,6 +51,12 @@ class MarketingService:
         except AIProviderError as e:
             raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=f"AI service failed to generate product mockup: {e}")
 
+        ai_marketing_copy_dict = ai_marketing_copy.dict()
+        ai_marketing_copy_dict.pop('suppliers_index', None)
+
+        calories = ai_marketing_copy_dict.pop('calories', None)
+        serving_size_per_bottle = ai_marketing_copy_dict.pop('serving_size_per_bottle', None)
+
         suppliers_index = []
         for _ in range(random.randint(5, 6)): # 5 or 6 suppliers
             suppliers_index.append(SupplierInfo(
@@ -59,9 +65,11 @@ class MarketingService:
             ))
 
         marketing_copy_data = MarketingCopyCreate(
-            **ai_marketing_copy.dict(),
+            **ai_marketing_copy_dict,
             formula_id=formula_id,
             product_mockup_url=public_image_url,
+            calories=calories,
+            serving_size_per_bottle=serving_size_per_bottle,
             suppliers_index=suppliers_index
         )
 

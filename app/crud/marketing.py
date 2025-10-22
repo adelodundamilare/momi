@@ -20,7 +20,10 @@ class CRUDMarketingCopy(CRUDBase[MarketingCopyModel, MarketingCopyCreate, Market
             potential_savings=obj_in.potential_savings.dict(),
             suggestions=obj_in.suggestions,
             allergen_alerts=obj_in.allergen_alerts.dict(),
-            sustainability=obj_in.sustainability.dict()
+            sustainability=obj_in.sustainability.dict(),
+            calories=obj_in.calories,
+            serving_size_per_bottle=obj_in.serving_size_per_bottle,
+            suppliers_index=[supplier.dict() for supplier in obj_in.suppliers_index] if obj_in.suppliers_index else []
         )
         db.add(db_obj)
         db.commit()
