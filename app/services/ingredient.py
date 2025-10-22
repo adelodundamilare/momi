@@ -27,10 +27,9 @@ class IngredientService:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"An ingredient with the slug '{ingredient_data.slug}' already exists."
             )
-        
-        # Generate a random image URL if not provided
+
         if not ingredient_data.image:
-            ingredient_data.image = self.fake.image_url()
+            ingredient_data.image = self.fake.image_url(width=640, height=480, placeholder_url='https://picsum.photos/{width}/{height}')
 
         new_ingredient = ingredient_crud.create(db, obj_in=ingredient_data)
 
@@ -38,8 +37,8 @@ class IngredientService:
         for _ in range(num_suppliers):
             mock_supplier_data = SupplierCreate(
                 full_name=self.fake.company(),
-                avatar=self.fake.image_url(),
-                image=self.fake.image_url(),
+                avatar=self.fake.image_url(width=640, height=480, placeholder_url='https://picsum.photos/{width}/{height}'),
+                image=self.fake.image_url(width=640, height=480, placeholder_url='https://picsum.photos/{width}/{height}'),
                 title=self.fake.job(),
                 availability=random.choice(["In Stock", "Limited", "Pre-order"]),
                 description=self.fake.paragraph(nb_sentences=2),
@@ -71,7 +70,7 @@ class IngredientService:
         supplier = supplier_crud.get(db, id=supplier_id)
         if not supplier:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Supplier not found")
-        
+
         return ingredient_crud.add_supplier(db, ingredient, supplier)
 
     def remove_supplier_from_ingredient(self, db: Session, ingredient_id: int, supplier_id: int):
@@ -81,7 +80,7 @@ class IngredientService:
         supplier = supplier_crud.get(db, id=supplier_id)
         if not supplier:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Supplier not found")
-        
+
         return ingredient_crud.remove_supplier(db, ingredient, supplier)
 
     @retry(stop=stop_after_attempt(3), wait=wait_fixed(2))
