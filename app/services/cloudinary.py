@@ -10,6 +10,10 @@ cloudinary.config(
 
 class CloudinaryService:
 
+    def upload_from_url(self, url: str):
+        result = cloudinary.uploader.upload(url)
+        return result["secure_url"]
+
     def upload_file(self, file: bytes):
         result = cloudinary.uploader.upload(file)
         return result["secure_url"]
