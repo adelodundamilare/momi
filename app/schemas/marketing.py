@@ -31,6 +31,11 @@ class Sustainability(BaseModel):
     factors: List[str]
 
 
+class SupplierInfo(BaseModel):
+    name: str
+    index_score: int
+
+
 class MarketingCopyBase(BaseModel):
     product_name: str
     tagline: str
@@ -46,6 +51,7 @@ class MarketingCopyBase(BaseModel):
     sustainability: Sustainability
     calories: Optional[int] = None
     serving_size_per_bottle: Optional[str] = None
+    suppliers_index: List[SupplierInfo]
 
 
 class AIMarketingCopy(BaseModel):
@@ -62,6 +68,7 @@ class AIMarketingCopy(BaseModel):
     sustainability: Sustainability
     calories: Optional[int] = None
     serving_size_per_bottle: Optional[str] = None
+    random_suppliers: List[SupplierInfo]
 
 
 class MarketingCopyCreate(MarketingCopyBase):

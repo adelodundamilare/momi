@@ -1,11 +1,13 @@
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
+from faker import Faker
+import random
 
 from app.services.ai_provider import AIProvider, OpenAIProvider, AIProviderError
 from app.crud.formula import formula as formula_crud
 from app.crud.marketing import marketing_copy as marketing_copy_crud
 from app.models.marketing import MarketingCopy
-from app.schemas.marketing import MarketingCopyCreate
+from app.schemas.marketing import MarketingCopyCreate, SupplierInfo
 from app.utils.prompt_templates import IMAGE_PROMPT_TEMPLATE, get_image_prompt_details
 from app.services.cloudinary import CloudinaryService
 
@@ -13,6 +15,7 @@ class MarketingService:
     def __init__(self, ai_provider: AIProvider = OpenAIProvider()):
         self.ai_provider = ai_provider
         self.cloudinary_service = CloudinaryService()
+        self.faker = Faker()
 
     async def generate_for_formula(self, db: Session, formula_id: int) -> MarketingCopy:
         formula = formula_crud.get(db, id=formula_id)
@@ -48,10 +51,18 @@ class MarketingService:
         except AIProviderError as e:
             raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=f"AI service failed to generate product mockup: {e}")
 
+        suppliers_index = []
+        for _ in range(random.randint(5, 6)): # 5 or 6 suppliers
+            suppliers_index.append(SupplierInfo(
+                name=self.faker.company(),
+                index_score=random.randint(1, 100)
+            ))
+
         marketing_copy_data = MarketingCopyCreate(
             **ai_marketing_copy.dict(),
             formula_id=formula_id,
-            product_mockup_url=public_image_url
+            product_mockup_url=public_image_url,
+            suppliers_index=suppliers_index
         )
 
         return marketing_copy_crud.create(db, obj_in=marketing_copy_data)

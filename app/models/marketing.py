@@ -20,6 +20,7 @@ class MarketingCopy(Base):
     sustainability = Column(JSON, nullable=True)
     calories = Column(Integer, nullable=True)
     serving_size_per_bottle = Column(String, nullable=True)
+    suppliers_index = Column(JSON, nullable=True)
 
     formula_id = Column(Integer, ForeignKey("formulas.id"))
     formula = relationship("Formula", back_populates="marketing_copy")
