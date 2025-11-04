@@ -53,6 +53,10 @@ class AIProvider(ABC):
         pass
 
     @abstractmethod
+    async def generate_insight_portal_data_with_context(self, ingredient_name: str, chat_context: str) -> AIInsightPortalData:
+        pass
+
+    @abstractmethod
     async def generate_formula_details(self, product_concept: str) -> AIFormulaDetails:
         pass
 
@@ -165,6 +169,24 @@ class OpenAIProvider(AIProvider):
         instruction = prompt_templates.INSIGHT_PORTAL_INSTRUCTION.format(ingredient_name=ingredient_name)
         system_prompt = self._create_prompt_from_model(AIInsightPortalData, instruction)
         user_prompt = f"Generate insight portal data for {ingredient_name}."
+        return await self._make_ai_call(system_prompt, user_prompt, AIInsightPortalData)
+
+    async def generate_insight_portal_data_with_context(self, ingredient_name: str, chat_context: str) -> AIInsightPortalData:
+        """Generate insight portal data with personalized chat context."""
+        contextual_instruction = f"""
+You are an AI assistant specializing in food and beverage market analysis.
+
+USER CONVERSATION CONTEXT:
+{chat_context}
+
+Based on the user's recent discussions and interests shown above, generate comprehensive market insights that are specifically relevant to their topics and questions about {ingredient_name}.
+
+Focus your analysis on the ingredients, trends, and topics they've been exploring in their conversation. Make the insights actionable and directly relevant to their apparent interests and needs.
+
+Provide insights that would help them make informed decisions about the topics they've been researching.
+"""
+        system_prompt = self._create_prompt_from_model(AIInsightPortalData, contextual_instruction)
+        user_prompt = f"Generate personalized insight portal data for {ingredient_name} based on the user's conversation context."
         return await self._make_ai_call(system_prompt, user_prompt, AIInsightPortalData)
 
     async def generate_formula_details(self, product_concept: str) -> AIFormulaDetails:
