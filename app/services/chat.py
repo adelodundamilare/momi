@@ -51,7 +51,12 @@ class ChatService:
             system_prompt = prompt_templates.DEFAULT_AGENT_SYSTEM_PROMPT.format(context=context)
 
         history_from_db = chat_message_crud.get_by_conversation_id(db, conversation_id=conversation_id)
-        historical_messages = [Message(role=msg.role, content=msg.content) for msg in history_from_db]
+
+        valid_chat_roles = {'user', 'assistant'}
+        historical_messages = [
+            Message(role=msg.role if msg.role in valid_chat_roles else 'user', content=msg.content)
+            for msg in history_from_db
+        ]
 
         messages_for_ai = [Message(role="system", content=system_prompt)] + historical_messages + messages
 
