@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
 from typing import List, Optional
 
 class Message(BaseModel):
@@ -6,6 +6,13 @@ class Message(BaseModel):
     content: str = Field(..., min_length=1)
 
 class ChatRequest(BaseModel):
-    messages: List[Message] = Field(..., min_length=1)
+    messages: Optional[List[Message]] = None
     agent_type: str = "innovative"
     conversation_id: int
+
+    @validator('messages')
+    def validate_input_method(cls, v, values):
+        return v
+
+    class Config:
+        extra = "allow"
