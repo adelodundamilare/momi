@@ -53,11 +53,11 @@ def read_ingredients(
     try:
         query = db.query(IngredientModel)
         if search:
-            query = query.filter(IngredientModel.name.contains(search))
+            query = query.filter(IngredientModel.name.ilike(f"%{search}%"))
         if trending:
             query = query.join(TrendData, TrendData.content.contains(IngredientModel.name))
         if type:
-            query = query.filter(IngredientModel.function == type)
+            query = query.filter(IngredientModel.function.ilike(type))
         ingredients = query.offset(skip).limit(limit).all()
         ingredients_response = [Ingredient.from_orm(ingredient) for ingredient in ingredients]
         return APIResponse(message="Ingredients retrieved successfully", data=ingredients_response)
