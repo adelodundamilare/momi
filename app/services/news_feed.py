@@ -8,6 +8,7 @@ from app.schemas.news_feed import NewsFeedCreate, NewsFeed
 from app.services.scraper import Scraper
 from app.utils.text_utils import generate_slug
 
+
 class NewsFeedService:
     FOOD_DIVE_RSS_FEED_URL = "https://www.fooddive.com/feeds/news/"
 
@@ -56,3 +57,55 @@ class NewsFeedService:
         """Retrieve news with pagination."""
         return news_feed_crud.get_multi(db, skip=skip, limit=limit)
 
+    def get_news_with_bookmarks(self, db: Session, *, user_id: Optional[int] = None, skip: int = 0, limit: int = 100) -> List[NewsFeed]:
+        """Retrieve news with bookmark status for user."""
+
+        result = news_feed_crud.get_multi_with_bookmarks(
+            db, user_id=user_id, skip=skip, limit=limit
+        )
+
+        news_feed_response = []
+        if user_id:
+            for news_item, is_bookmarked in result:
+                news_dict = NewsFeed.from_orm(news_item).model_dump()
+                news_dict['is_bookmarked'] = is_bookmarked
+                news_feed_response.append(NewsFeed(**news_dict))
+        else:
+            for news_item in result:
+                news_feed_response.append(NewsFeed.from_orm(news_item))
+
+        return news_feed_response
+
+    def get_bookmarked_news(self, db: Session, *, user_id: int) -> List[NewsFeed]:
+        """Retrieve bookmarked news items for a user."""
+        from app.crud.bookmarked_news import bookmarked_news
+        from app.schemas.news_feed import NewsFeed
+
+        bookmarked_items = bookmarked_news.get_bookmarked_news_for_user(
+            db, user_id=user_id
+        )
+
+        bookmarked_response = []
+        for item in bookmarked_items:
+            news_dict = NewsFeed.from_orm(item).model_dump()
+            news_dict['is_bookmarked'] = True
+            bookmarked_response.append(NewsFeed(**news_dict))
+
+        return bookmarked_response
+
+    def bookmark_news_for_user(self, db: Session, *, news_id: int, user_id: int):
+        """Bookmark a news item for a user with validation."""
+        from app.crud.bookmarked_news import bookmarked_news
+        from app.schemas.bookmarked_news import BookmarkedNewsCreate
+
+        news_item = news_feed_crud.get(db, id=news_id)
+        if not news_item:
+            raise ValueError("News item not found")
+
+        if bookmarked_news.exists_by_user_and_news(
+            db, user_id=user_id, news_feed_id=news_id
+        ):
+            raise ValueError("News item already bookmarked")
+
+        obj_in = BookmarkedNewsCreate(user_id=user_id, news_feed_id=news_id)
+        bookmarked_news.create(db, obj_in=obj_in)

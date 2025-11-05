@@ -35,3 +35,28 @@ async def get_current_user(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user
+
+async def get_current_user_optional(
+    db: Session = Depends(get_db),
+    credentials: HTTPAuthorizationCredentials = Depends(http_bearer)
+) -> User:
+    """Get current user if authenticated, otherwise return None."""
+    try:
+        token = credentials.credentials
+        payload = jwt.decode(
+            token, settings.SECRET_KEY, algorithms=["HS256"]
+        )
+
+        # Check if token is in denylist
+        jti = payload.get("jti")
+        if jti and token_denylist_crud.get_by_jti(db, jti=jti):
+            return None  # Token revoked, treat as unauthenticated
+
+        email: str = payload.get("sub")
+        if email is None:
+            return None  # Invalid token, treat as unauthenticated
+    except JWTError:
+        return None  # Invalid token, treat as unauthenticated
+
+    user = user_crud.get_by_email(db, email=email)
+    return user  # Return user if found, None if not

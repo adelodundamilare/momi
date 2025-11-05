@@ -24,6 +24,8 @@ class NewsFeedInDBBase(NewsFeedBase):
         from_attributes = True
 
 class NewsFeed(NewsFeedInDBBase):
+    is_bookmarked: bool = False
+
     @computed_field
     @property
     def views(self) -> int:
