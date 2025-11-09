@@ -5,7 +5,7 @@ from app.schemas.formula import FormulaCreate, FormulaIngredientCreate
 from app.schemas.ingredient import IngredientCreate
 from app.models.user import User
 from fastapi import HTTPException, status
-from typing import List, Any
+from typing import List, Any, Optional
 from io import BytesIO
 import asyncio
 
@@ -28,9 +28,9 @@ class FormulaService:
         self.ingredient_service = IngredientService(ai_provider)
         self.fake = Faker()
 
-    async def generate_formula_from_concept(self, db: Session, product_concept: str, current_user: User) -> Any:
+    async def generate_formula_from_concept(self, db: Session, product_concept: str, current_user: User, market_insights: Optional[dict] = None) -> Any:
         try:
-            ai_formula_details = await self.ai_provider.generate_formula_details(product_concept)
+            ai_formula_details = await self.ai_provider.generate_formula_details(product_concept, market_insights)
         except AIProviderError as e:
             raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=f"AI service failed to generate formula details: {e}")
 

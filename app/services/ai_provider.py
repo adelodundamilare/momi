@@ -57,7 +57,7 @@ class AIProvider(ABC):
         pass
 
     @abstractmethod
-    async def generate_formula_details(self, product_concept: str) -> AIFormulaDetails:
+    async def generate_formula_details(self, product_concept: str, market_insights: Optional[Dict[str, Any]] = None) -> AIFormulaDetails:
         pass
 
     @abstractmethod
@@ -125,17 +125,15 @@ class OpenAIProvider(AIProvider):
             return response_model.model_validate(response_json)
         except ValidationError as e:
             logger.error(f"Pydantic validation error for {response_model.__name__}: {e}")
-            # Do not retry on validation error, it's a permanent failure for this response.
             raise AIProviderError(f"AI response failed validation for {response_model.__name__}.") from e
         except openai.APIError as e:
             logger.warning(f"OpenAI API error on attempt: {e}. Retrying...")
-            raise  # Reraise the exception to trigger tenacity retry
+            raise
         except Exception as e:
             logger.error(f"An unexpected error occurred in the AI call: {e}")
             raise AIProviderError("An unexpected error occurred.") from e
 
     async def generate_chat_completion(self, messages: List[Message]) -> Iterator[str]: # type: ignore
-        # Chat completion is not retried in the same way, as it's a stream.
         message_dicts = [msg.dict() for msg in messages]
         try:
             stream = await self.client.chat.completions.create(
@@ -189,9 +187,26 @@ Provide insights that would help them make informed decisions about the topics t
         user_prompt = f"Generate personalized insight portal data for {ingredient_name} based on the user's conversation context."
         return await self._make_ai_call(system_prompt, user_prompt, AIInsightPortalData)
 
-    async def generate_formula_details(self, product_concept: str) -> AIFormulaDetails:
-        system_prompt = self._create_prompt_from_model(AIFormulaDetails, prompt_templates.FORMULA_DETAILS_INSTRUCTION)
-        user_prompt = f"The product concept is: {product_concept}"
+    async def generate_formula_details(self, product_concept: str, market_insights: Optional[Dict[str, Any]] = None) -> AIFormulaDetails:
+        if market_insights:
+            enhanced_instruction = f"""
+{prompt_templates.FORMULA_DETAILS_INSTRUCTION}
+
+MARKET CONTEXT:
+- Trending product concepts: {', '.join([str(c.get('title', '')) for c in market_insights.get('shared_product_concepts', [])])}
+- Key competitors: {', '.join(market_insights.get('company_competitors', []))}
+- Market opportunities: {market_insights.get('assistant_recommendations', {}).get('opportunity', '')}
+- Target demographics: {', '.join([f"{k}: {v}" for k, v in market_insights.get('demography_data', {}).items()])}
+- Geographic focus: {', '.join(market_insights.get('top_geographic_locations', []))}
+
+Create a formula that leverages current market trends and addresses identified opportunities.
+"""
+            system_prompt = self._create_prompt_from_model(AIFormulaDetails, enhanced_instruction)
+            user_prompt = f"Create a market-driven formula for: {product_concept}"
+        else:
+            system_prompt = self._create_prompt_from_model(AIFormulaDetails, prompt_templates.FORMULA_DETAILS_INSTRUCTION)
+            user_prompt = f"The product concept is: {product_concept}"
+
         return await self._make_ai_call(system_prompt, user_prompt, AIFormulaDetails)
 
     async def generate_marketing_copy(self, formula_name: str, formula_description: str) -> AIMarketingCopy:
@@ -230,7 +245,6 @@ Provide insights that would help them make informed decisions about the topics t
             return response.choices[0].message.content.strip("'.\" ")
         except Exception as e:
             logger.error(f"An unexpected error occurred during product categorization: {e}")
-            # Fallback to a generic category
             return "Other"
 
     async def extract_trend_data(self, article_title: str, article_content: str) -> AITrendData:

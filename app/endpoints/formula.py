@@ -53,9 +53,10 @@ async def generate_formula_from_concept(
 ):
     """
     Generates a formula based on a product concept using AI.
+    Optionally uses market insights to create more informed formulas.
     """
     generated_formula_data = await formula_service.generate_formula_from_concept(
-        db, request.product_concept, current_user
+        db, request.product_concept, current_user, request.market_insights
     )
     formula_response = Formula.from_orm(generated_formula_data)
     return APIResponse(message="Formula generated successfully", data=formula_response)
