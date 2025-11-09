@@ -6,7 +6,6 @@ from app.crud.base import CRUDBase
 from app.models.formula import Formula, FormulaIngredient
 from app.schemas.formula import FormulaCreate, FormulaUpdate
 
-
 class CRUDFormula(CRUDBase[Formula, FormulaCreate, FormulaUpdate]):
     def get(self, db: Session, id: int) -> Optional[Formula]:
         return (
@@ -48,14 +47,14 @@ class CRUDFormula(CRUDBase[Formula, FormulaCreate, FormulaUpdate]):
         db.commit()
         return self.get(db, id=db_formula.id)
 
-    def get_multi(self, db: Session, *, skip: int = 0, limit: int = 100) -> List[Formula]:
-        from app.models.ingredient import Ingredient
+    def get_multi_by_author(self, db: Session, *, author_id: int, skip: int = 0, limit: int = 100) -> List[Formula]:
         return (
             db.query(self.model)
             .options(
                 joinedload(self.model.ingredients).joinedload(FormulaIngredient.ingredient),
                 joinedload(self.model.ingredients).joinedload(FormulaIngredient.supplier)
             )
+            .filter(self.model.author_id == author_id)
             .offset(skip)
             .limit(limit)
             .all()

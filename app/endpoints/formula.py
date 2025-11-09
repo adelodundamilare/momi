@@ -17,22 +17,30 @@ formula_service = FormulaService(ai_provider=OpenAIProvider())
 @router.get("/", response_model=APIResponse)
 def read_all_formulas(
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """
-    Retrieve a list of all formulas.
+    Retrieve a list of formulas for the current user.
     """
-    formulas = formula_service.get_all_formulas(db)
+    formulas = formula_service.get_all_formulas(db, author_id=current_user.id)
     formulas_response = [Formula.from_orm(formula) for formula in formulas]
     return APIResponse(message="Formulas retrieved successfully", data=formulas_response)
 
 @router.get("/{id}", response_model=APIResponse)
-def read_formula(*, db: Session = Depends(get_db), id: int):
+def read_formula(
+    *,
+    db: Session = Depends(get_db),
+    id: int,
+    current_user: User = Depends(get_current_user)
+):
     """
-    Get formula by ID.
+    Get formula by ID for the current user.
     """
     formula = formula_service.get_formula(db, id=id)
     if not formula:
         raise HTTPException(status_code=404, detail="Formula not found")
+    if formula.author_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to access this formula")
     formula_response = Formula.from_orm(formula)
     return APIResponse(message="Formula retrieved successfully", data=formula_response)
 
@@ -65,6 +73,12 @@ def export_formula_excel(
     """
     Export formula to Excel.
     """
+    formula = formula_service.get_formula(db, id=formula_id)
+    if not formula:
+        raise HTTPException(status_code=404, detail="Formula not found")
+    if formula.author_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to access this formula")
+
     excel_file = formula_service.export_formula_excel(db, formula_id)
     return StreamingResponse(
         excel_file,
@@ -82,6 +96,12 @@ def export_formula_pdf(
     """
     Export formula to PDF.
     """
+    formula = formula_service.get_formula(db, id=formula_id)
+    if not formula:
+        raise HTTPException(status_code=404, detail="Formula not found")
+    if formula.author_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to access this formula")
+
     pdf_file = formula_service.export_formula_pdf(db, formula_id)
     return StreamingResponse(
         pdf_file,

@@ -90,7 +90,7 @@ class FormulaService:
                 quantity=quantity,
                 supplier_id=supplier_id
             ))
-        
+
         return formula_ingredients_create, enrichment_tasks
 
     def _create_formula_with_ingredients(self, db: Session, ai_formula_details: Any, product_concept: str, ingredients_data: List[FormulaIngredientCreate], author_id: int):
@@ -105,8 +105,8 @@ class FormulaService:
     def get_formula(self, db: Session, id: int):
         return formula_crud.get(db, id=id)
 
-    def get_all_formulas(self, db: Session) -> List[Any]:
-        return formula_crud.get_multi(db)
+    def get_all_formulas(self, db: Session, author_id: int) -> List[Any]:
+        return formula_crud.get_multi_by_author(db, author_id=author_id)
 
     def export_formula_excel(self, db: Session, formula_id: int) -> BytesIO:
         formula = self.get_formula(db, id=formula_id)
@@ -177,7 +177,7 @@ class FormulaService:
                     cost,
                 ]
             )
-        
+
         data.append(["", "", "", "Total Cost", total_cost])
 
         table = Table(data)
