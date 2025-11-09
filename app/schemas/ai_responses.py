@@ -51,6 +51,9 @@ class AIGenderBias(BaseModel):
     female: float
 
 class AIInsightPortalData(BaseModel):
+    identified_ingredient: Optional[str] = None
+    error: Optional[str] = None
+    error_message: Optional[str] = None
     shared_product_concepts: List[AISharedProductConcept]
     company_competitors: List[str]
     assistant_recommendations: AIAssistantRecommendations
@@ -58,7 +61,6 @@ class AIInsightPortalData(BaseModel):
     gender_bias: AIGenderBias
     top_geographic_locations: List[str]
 
-# --- For generate_formula_details ---
 class AIFormulaIngredient(BaseModel):
     name: str
     quantity: float
@@ -69,13 +71,11 @@ class AIFormulaDetails(BaseModel):
     formula_description: str
     ingredients: List[AIFormulaIngredient]
 
-# --- For Commercialization Workflow Analysis ---
 class AICommercializationInsights(BaseModel):
     timeline_data: AITimelineOutput
     risks: List[Risk]
     recommendations: List[Recommendation]
 
-# --- For AI-driven Supplier Analysis ---
 class AISupplierAssessment(BaseModel):
     reliability: str
     cost: str
@@ -92,9 +92,8 @@ class AISupplierAnalysisIngredient(BaseModel):
     alternatives: List[AIAlternativeSupplier]
 
 class AISupplierAnalysisOutput(BaseModel):
-    supplier_analysis: Dict[str, AISupplierAnalysisIngredient] # Key is ingredient_name
+    supplier_analysis: Dict[str, AISupplierAnalysisIngredient]
 
-# --- For AI-driven Cost Analysis ---
 class AICostBreakdown(BaseModel):
     ingredients: float
     packaging: float

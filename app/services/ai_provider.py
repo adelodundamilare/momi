@@ -177,14 +177,30 @@ You are an AI assistant specializing in food and beverage market analysis.
 USER CONVERSATION CONTEXT:
 {chat_context}
 
-Based on the user's recent discussions and interests shown above, generate comprehensive market insights that are specifically relevant to their topics and questions about {ingredient_name}.
+TASK:
+1. Analyze the entire conversation and identify ALL food ingredients mentioned
+2. From those ingredients, select the SINGLE most relevant/important one as the focus
+3. Generate insights primarily for that top ingredient
+
+INGREDIENT EXTRACTION RULES:
+- Look for actual food ingredients (rice, tomatoes, peppers, stock, spices, etc.)
+- Include cooking ingredients, vegetables, proteins, seasonings, etc.
+- Consider context clues about what the user is researching
+- Extract specific ingredient names from recipes, discussions, questions
+
+REQUIREMENTS:
+- If NO ingredients are clearly mentioned, return error about insufficient context
+- If ingredients ARE mentioned, always select one as the top focus
+- Use multi-ingredient context to provide richer insights
+- Do NOT provide generic insights or make assumptions
+- Do NOT analyze "General Ingredient" or similar fallbacks
+
+If context is insufficient, return a complete response with: {{"error": "insufficient_context", "error_message": "Unable to determine specific ingredient from conversation. Please provide more specific details about which ingredient you want market insights for.", "identified_ingredient": null, "shared_product_concepts": [], "company_competitors": [], "assistant_recommendations": {{"opportunity": "", "risk": ""}}, "demography_data": {{}}, "gender_bias": {{"male": 0, "female": 0}}, "top_geographic_locations": []}}
 
 Focus your analysis on the ingredients, trends, and topics they've been exploring in their conversation. Make the insights actionable and directly relevant to their apparent interests and needs.
-
-Provide insights that would help them make informed decisions about the topics they've been researching.
 """
         system_prompt = self._create_prompt_from_model(AIInsightPortalData, contextual_instruction)
-        user_prompt = f"Generate personalized insight portal data for {ingredient_name} based on the user's conversation context."
+        user_prompt = f"Analyze the conversation context and generate market insights for the most relevant ingredient discussed."
         return await self._make_ai_call(system_prompt, user_prompt, AIInsightPortalData)
 
     async def generate_formula_details(self, product_concept: str, market_insights: Optional[Dict[str, Any]] = None) -> AIFormulaDetails:

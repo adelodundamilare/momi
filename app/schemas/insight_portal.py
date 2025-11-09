@@ -16,6 +16,7 @@ class AssistantRecommendation(BaseModel):
     risk: str
 
 class InsightPortal(BaseModel):
+    top_ingredient: Optional[str] = None
     top_ingredient_mentions: Dict[str, SocialPlatformMention]
     shared_product_concepts: List[ProductConcept]
     company_competitors: List[str]
