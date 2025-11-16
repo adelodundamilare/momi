@@ -55,6 +55,7 @@ class CRUDFormula(CRUDBase[Formula, FormulaCreate, FormulaUpdate]):
                 joinedload(self.model.ingredients).joinedload(FormulaIngredient.supplier)
             )
             .filter(self.model.author_id == author_id)
+            .order_by(self.model.created_at.desc())
             .offset(skip)
             .limit(limit)
             .all()

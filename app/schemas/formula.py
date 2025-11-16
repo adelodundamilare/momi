@@ -1,33 +1,30 @@
 from pydantic import BaseModel, root_validator
 from typing import Optional, List
-from app.schemas.ingredient import Ingredient # Import for response model
-from app.schemas.supplier import Supplier # Import for response model
+from datetime import datetime
+from app.schemas.ingredient import Ingredient
+from app.schemas.supplier import Supplier
 
-# --- Schemas for the relationship ---
 class FormulaIngredientBase(BaseModel):
     ingredient_id: int
     quantity: float
-    supplier_id: Optional[int] = None # New field
+    supplier_id: Optional[int] = None
 
 class FormulaIngredientCreate(FormulaIngredientBase):
     pass
 
 class FormulaIngredient(FormulaIngredientBase):
     ingredient: Ingredient
-    supplier: Optional[Supplier] = None # New field
+    supplier: Optional[Supplier] = None
 
     class Config:
         from_attributes = True
 
-# --- Schemas for the main Formula model ---
-
-# Shared properties
 class FormulaBase(BaseModel):
     name: str
     description: Optional[str] = None
     product_concept: Optional[str] = None
 
-# Properties to receive on item creation
+
 class FormulaCreate(FormulaBase):
     ingredients: List[FormulaIngredientCreate]
 
@@ -41,6 +38,8 @@ class FormulaGenerationRequest(BaseModel):
 class FormulaInDBBase(FormulaBase):
     id: int
     author_id: int
+    created_at: datetime
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
