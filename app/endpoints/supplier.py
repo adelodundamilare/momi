@@ -10,7 +10,6 @@ from app.utils.deps import get_current_user
 from app.models.user import User
 from app.services.supplier import SupplierService
 from app.utils.logger import setup_logger
-from app.crud.supplier import supplier as supplier_crud
 
 
 logger = setup_logger("supplier_api", "supplier.log")
@@ -25,12 +24,14 @@ def create_supplier(
     current_user: User = Depends(get_current_user),
 ):
     """
-    Create a new supplier.
+    Create a new supplier. Optionally link to an ingredient.
     """
     try:
-        created_supplier = supplier_crud.create(db, obj_in=supplier_data)
+        created_supplier = supplier_service.create_supplier(db, supplier_data)
         supplier_response = Supplier.from_orm(created_supplier)
         return APIResponse(message="Supplier created successfully", data=supplier_response)
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error in create_supplier: {str(e)}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))

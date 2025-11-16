@@ -14,7 +14,7 @@ class SupplierBase(BaseModel):
     us_approved_status: bool = False
 
 class SupplierCreate(SupplierBase):
-    pass
+    ingredient_id: Optional[int] = None
 
 class SupplierUpdate(SupplierBase):
     pass

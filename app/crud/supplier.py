@@ -15,4 +15,13 @@ class CRUDSupplier(CRUDBase[Supplier, SupplierCreate, SupplierUpdate]):
         from app.models.ingredient import Ingredient # Import here to avoid circular dependency
         return db.query(self.model).join(Ingredient.suppliers).filter(Ingredient.id == ingredient_id).order_by(self.model.price_per_unit.asc()).first()
 
+    def link_supplier_to_ingredient(self, db: Session, supplier_id: int, ingredient_id: int):
+        from sqlalchemy import insert
+        from app.models.ingredient import ingredient_suppliers
+        db.execute(insert(ingredient_suppliers).values(
+            ingredient_id=ingredient_id,
+            supplier_id=supplier_id
+        ))
+        db.commit()
+
 supplier = CRUDSupplier(Supplier)

@@ -4,7 +4,9 @@ from typing import List
 
 from app.crud.supplier import supplier as supplier_crud
 from app.crud.bookmarked_supplier import bookmarked_supplier as bookmarked_supplier_crud
+from app.crud.ingredient import ingredient as ingredient_crud
 from app.schemas.bookmarked_supplier import BookmarkedSupplierCreate
+from app.schemas.supplier import SupplierCreate, Supplier as SupplierSchema
 from app.models.user import User
 from app.models.ingredient import Ingredient
 from app.models.supplier import Supplier as SupplierModel
@@ -29,6 +31,15 @@ class SupplierService:
             obj_in = BookmarkedSupplierCreate(user_id=current_user.id, supplier_id=supplier_id)
             bookmarked_supplier_crud.create(db, obj_in=obj_in)
             return "bookmarked"
+
+    def create_supplier(self, db: Session, supplier_data: SupplierCreate):
+        supplier = supplier_crud.create(db, obj_in=supplier_data)
+        if supplier_data.ingredient_id:
+            ingredient = ingredient_crud.get(db, id=supplier_data.ingredient_id)
+            if not ingredient:
+                raise HTTPException(status_code=400, detail="Invalid ingredient_id")
+            supplier_crud.link_supplier_to_ingredient(db, supplier.id, supplier_data.ingredient_id)
+        return supplier
 
     def get_suppliers_by_ingredient(self, db: Session, ingredient_id: int) -> List[SupplierModel]:
         ingredient = db.query(Ingredient).filter(Ingredient.id == ingredient_id).first()
