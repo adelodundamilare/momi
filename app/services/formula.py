@@ -4,6 +4,7 @@ from app.crud.ingredient import ingredient as ingredient_crud
 from app.schemas.formula import FormulaCreate, FormulaIngredientCreate
 from app.schemas.ingredient import IngredientCreate
 from app.models.user import User
+from app.models.formula import FormulaIngredient
 from fastapi import HTTPException, status
 from typing import List, Any, Optional
 from io import BytesIO
@@ -107,6 +108,31 @@ class FormulaService:
 
     def get_all_formulas(self, db: Session, author_id: int) -> List[Any]:
         return formula_crud.get_multi_by_author(db, author_id=author_id)
+
+    def add_ingredient_to_formula(self, db: Session, formula_id: int, ingredient_in: FormulaIngredientCreate, author_id: int):
+        formula = formula_crud.get(db, id=formula_id)
+        if not formula or formula.author_id != author_id:
+            raise HTTPException(status_code=404, detail="Formula not found or not authorized")
+
+        ingredient = ingredient_crud.get(db, id=ingredient_in.ingredient_id)
+        if not ingredient:
+            raise HTTPException(status_code=400, detail="Invalid ingredient")
+
+        if ingredient_in.supplier_id:
+            supplier = supplier_crud.get(db, id=ingredient_in.supplier_id)
+            if not supplier:
+                raise HTTPException(status_code=400, detail="Invalid supplier")
+
+        if ingredient_in.quantity < 1:
+            raise HTTPException(status_code=400, detail="Quantity must be at least 1")
+
+        association = FormulaIngredient(
+            formula_id=formula_id,
+            ingredient_id=ingredient_in.ingredient_id,
+            quantity=ingredient_in.quantity,
+            supplier_id=ingredient_in.supplier_id,
+        )
+        return formula_crud.add_formula_ingredient_association(db, association, formula_id)
 
     def export_formula_excel(self, db: Session, formula_id: int) -> BytesIO:
         formula = self.get_formula(db, id=formula_id)

@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.models.user import User
-from app.schemas.formula import Formula, FormulaGenerationRequest
+from app.schemas.formula import Formula, FormulaGenerationRequest, FormulaIngredientCreate
 from app.schemas.utility import APIResponse
 from app.services.formula import FormulaService
 from app.services.ai_provider import OpenAIProvider
@@ -61,8 +61,21 @@ async def generate_formula_from_concept(
     formula_response = Formula.from_orm(generated_formula_data)
     return APIResponse(message="Formula generated successfully", data=formula_response)
 
-
-
+@router.post("/{formula_id}/ingredients", response_model=APIResponse)
+def add_ingredient_to_formula(
+    formula_id: int,
+    ingredient_in: FormulaIngredientCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Add an ingredient to an existing formula.
+    """
+    updated_formula = formula_service.add_ingredient_to_formula(
+        db, formula_id=formula_id, ingredient_in=ingredient_in, author_id=current_user.id
+    )
+    formula_response = Formula.from_orm(updated_formula)
+    return APIResponse(message="Ingredient added to formula successfully", data=formula_response)
 
 
 @router.get("/{formula_id}/export/excel")

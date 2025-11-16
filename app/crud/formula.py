@@ -1,6 +1,7 @@
 from typing import List, Optional
 
 from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.sql import func
 
 from app.crud.base import CRUDBase
 from app.models.formula import Formula, FormulaIngredient
@@ -60,5 +61,12 @@ class CRUDFormula(CRUDBase[Formula, FormulaCreate, FormulaUpdate]):
             .limit(limit)
             .all()
         )
+
+    def add_formula_ingredient_association(self, db: Session, association: FormulaIngredient, formula_id: int) -> Formula:
+        db.add(association)
+        formula = db.query(self.model).filter(self.model.id == formula_id).first()
+        formula.updated_at = func.now()
+        db.commit()
+        return self.get(db, id=formula_id)
 
 formula = CRUDFormula(Formula)

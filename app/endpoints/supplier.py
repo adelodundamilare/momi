@@ -3,18 +3,37 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 
 from app.core.database import get_db
-from app.schemas.supplier import Supplier
+from app.schemas.supplier import Supplier, SupplierCreate
 from app.crud.supplier import supplier
 from app.schemas.utility import APIResponse
 from app.utils.deps import get_current_user
 from app.models.user import User
 from app.services.supplier import SupplierService
 from app.utils.logger import setup_logger
+from app.crud.supplier import supplier as supplier_crud
+
 
 logger = setup_logger("supplier_api", "supplier.log")
 
 router = APIRouter()
 supplier_service = SupplierService()
+
+@router.post("/", response_model=APIResponse)
+def create_supplier(
+    supplier_data: SupplierCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Create a new supplier.
+    """
+    try:
+        created_supplier = supplier_crud.create(db, obj_in=supplier_data)
+        supplier_response = Supplier.from_orm(created_supplier)
+        return APIResponse(message="Supplier created successfully", data=supplier_response)
+    except Exception as e:
+        logger.error(f"Error in create_supplier: {str(e)}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 @router.get("/", response_model=APIResponse)
 def read_suppliers(
