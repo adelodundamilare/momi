@@ -34,11 +34,6 @@ class SupplierService:
 
     def create_supplier(self, db: Session, supplier_data: SupplierCreate):
         supplier = supplier_crud.create(db, obj_in=supplier_data)
-        if supplier_data.ingredient_id:
-            ingredient = ingredient_crud.get(db, id=supplier_data.ingredient_id)
-            if not ingredient:
-                raise HTTPException(status_code=400, detail="Invalid ingredient_id")
-            supplier_crud.link_supplier_to_ingredient(db, supplier.id, supplier_data.ingredient_id)
         return supplier
 
     def get_suppliers_by_ingredient(self, db: Session, ingredient_id: int) -> List[SupplierModel]:

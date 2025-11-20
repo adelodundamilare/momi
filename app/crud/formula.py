@@ -62,11 +62,17 @@ class CRUDFormula(CRUDBase[Formula, FormulaCreate, FormulaUpdate]):
             .all()
         )
 
+    def has_ingredient(self, db: Session, formula_id: int, ingredient_id: int) -> bool:
+        return db.query(FormulaIngredient).filter(
+            FormulaIngredient.formula_id == formula_id,
+            FormulaIngredient.ingredient_id == ingredient_id
+        ).first() is not None
+
+
     def add_formula_ingredient_association(self, db: Session, association: FormulaIngredient, formula_id: int) -> Formula:
         db.add(association)
         formula = db.query(self.model).filter(self.model.id == formula_id).first()
         formula.updated_at = func.now()
         db.commit()
         return self.get(db, id=formula_id)
-
 formula = CRUDFormula(Formula)

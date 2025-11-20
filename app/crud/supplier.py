@@ -3,8 +3,21 @@ from app.models.supplier import Supplier
 from app.schemas.supplier import SupplierCreate, SupplierUpdate
 from typing import List, Optional
 from sqlalchemy.orm import Session
+from fastapi.encoders import jsonable_encoder
 
 class CRUDSupplier(CRUDBase[Supplier, SupplierCreate, SupplierUpdate]):
+    def create(self, db: Session, *, obj_in: SupplierCreate) -> Supplier:
+        obj_in_data = jsonable_encoder(obj_in)
+        model_columns = [c.key for c in self.model.__table__.columns]
+        filtered_data = {k: v for k, v in obj_in_data.items() if k in model_columns}
+        db_obj = self.model(**filtered_data)
+        db.add(db_obj)
+        db.commit()
+        db.refresh(db_obj)
+        if hasattr(obj_in, 'ingredient_id') and obj_in.ingredient_id is not None:
+            self.link_supplier_to_ingredient(db, db_obj.id, obj_in.ingredient_id)
+        return db_obj
+
     def get_multi(self, db: Session, *, skip: int = 0, limit: int = 100, search: Optional[str] = None) -> List[Supplier]:
         query = db.query(self.model)
         if search:

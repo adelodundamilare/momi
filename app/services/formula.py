@@ -123,6 +123,9 @@ class FormulaService:
             if not supplier:
                 raise HTTPException(status_code=400, detail="Invalid supplier")
 
+        if formula_crud.has_ingredient(db, formula_id, ingredient_in.ingredient_id):
+            raise HTTPException(status_code=400, detail="Ingredient already added to this formula")
+
         if ingredient_in.quantity < 1:
             raise HTTPException(status_code=400, detail="Quantity must be at least 1")
 
@@ -133,6 +136,7 @@ class FormulaService:
             supplier_id=ingredient_in.supplier_id,
         )
         return formula_crud.add_formula_ingredient_association(db, association, formula_id)
+
 
     def export_formula_excel(self, db: Session, formula_id: int) -> BytesIO:
         formula = self.get_formula(db, id=formula_id)

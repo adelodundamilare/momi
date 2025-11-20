@@ -13,7 +13,7 @@ class FormulaIngredientCreate(FormulaIngredientBase):
     pass
 
 class FormulaIngredient(FormulaIngredientBase):
-    ingredient: Ingredient
+    ingredient: Optional[Ingredient] = None
     supplier: Optional[Supplier] = None
 
     class Config:

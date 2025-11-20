@@ -1,24 +1,24 @@
-from sqlalchemy.orm import Session
-from app.crud.ingredient import ingredient as ingredient_crud
-from app.schemas.ingredient import IngredientCreate, IngredientUpdate
-from fastapi import HTTPException, status
-from app.services.ai_provider import AIProvider, AIProviderError
-from faker import Faker
-import random
 import logging
+import random
+from tenacity import retry, stop_after_attempt, wait_fixed, RetryError
+from sqlalchemy.orm import Session
+from app.core.database import SessionLocal
+from app.crud.ingredient import ingredient as ingredient_crud
 from app.crud.supplier import supplier as supplier_crud
+from app.schemas.ingredient import IngredientCreate, IngredientUpdate
 from app.schemas.supplier import SupplierCreate
+from app.services.ai_provider import AIProvider, AIProviderError
+from app.services.supplier import SupplierService
+from faker import Faker
+from fastapi import HTTPException, status
 
 logger = logging.getLogger(__name__)
-
-from tenacity import retry, stop_after_attempt, wait_fixed, RetryError
-
-from app.core.database import SessionLocal
 
 class IngredientService:
     def __init__(self, ai_provider: AIProvider):
         self.ai_provider = ai_provider
         self.fake = Faker()
+        self.supplier_service = SupplierService()
 
     def create_ingredient(self, db: Session, *, ingredient_data: IngredientCreate):
         existing_ingredient = ingredient_crud.get_by_slug(db, slug=ingredient_data.slug)
@@ -45,10 +45,10 @@ class IngredientService:
                 price_per_unit=round(random.uniform(5.0, 50.0), 2),
                 moq_weight_kg=random.choice([10, 25, 50, 100]),
                 delivery_duration=random.choice(["1-3 days", "1 week", "2 weeks"]),
-                us_approved_status=self.fake.boolean()
+                us_approved_status=self.fake.boolean(),
+                ingredient_id=new_ingredient.id
             )
-            created_supplier = supplier_crud.create(db, obj_in=mock_supplier_data)
-            new_ingredient.suppliers.append(created_supplier)
+            created_supplier = self.supplier_service.create_supplier(db, mock_supplier_data)
 
         db.commit()
         db.refresh(new_ingredient)
