@@ -34,10 +34,12 @@ class FormulaUpdate(FormulaBase):
 class FormulaGenerationRequest(BaseModel):
     product_concept: str
     market_insights: Optional[dict] = None
+    conversation_id: Optional[int] = None
 
 class FormulaInDBBase(FormulaBase):
     id: int
     author_id: int
+    conversation_id: Optional[int] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
 

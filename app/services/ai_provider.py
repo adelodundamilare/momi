@@ -61,6 +61,10 @@ class AIProvider(ABC):
         pass
 
     @abstractmethod
+    async def generate_formula_details_with_context(self, product_concept: str, market_insights: Optional[Dict[str, Any]] = None, chat_context: Optional[str] = None) -> AIFormulaDetails:
+        pass
+
+    @abstractmethod
     async def generate_marketing_copy(self, formula_name: str, formula_description: str) -> AIMarketingCopy:
         pass
 
@@ -221,6 +225,39 @@ Create a formula that leverages current market trends and addresses identified o
             user_prompt = f"Create a market-driven formula for: {product_concept}"
         else:
             system_prompt = self._create_prompt_from_model(AIFormulaDetails, prompt_templates.FORMULA_DETAILS_INSTRUCTION)
+            user_prompt = f"The product concept is: {product_concept}"
+
+        return await self._make_ai_call(system_prompt, user_prompt, AIFormulaDetails)
+
+    async def generate_formula_details_with_context(self, product_concept: str, market_insights: Optional[Dict[str, Any]] = None, chat_context: Optional[str] = None) -> AIFormulaDetails:
+        """Generate formula details with conversation context for personalization."""
+        base_instruction = prompt_templates.FORMULA_DETAILS_INSTRUCTION
+
+        context_parts = []
+        if market_insights:
+            context_parts.append(f"""
+MARKET CONTEXT:
+- Trending product concepts: {', '.join([str(c.get('title', '')) for c in market_insights.get('shared_product_concepts', [])])}
+- Key competitors: {', '.join(market_insights.get('company_competitors', []))}
+- Market opportunities: {market_insights.get('assistant_recommendations', {}).get('opportunity', '')}
+- Target demographics: {', '.join([f"{k}: {v}" for k, v in market_insights.get('demography_data', {}).items()])}
+- Geographic focus: {', '.join(market_insights.get('top_geographic_locations', []))}
+""")
+
+        if chat_context:
+            context_parts.append(f"""
+CONVERSATION CONTEXT:
+{chat_context}
+
+Use this conversation history to understand the user's preferences, previously discussed ingredients, product concepts, and requirements. Create a formula that aligns with their ongoing discussion and interests.
+""")
+
+        if context_parts:
+            enhanced_instruction = base_instruction + "\n\n" + "\n".join(context_parts) + "\n\nCreate a formula that leverages all available context to address the user's specific needs and interests."
+            system_prompt = self._create_prompt_from_model(AIFormulaDetails, enhanced_instruction)
+            user_prompt = f"Create a personalized formula for: {product_concept}"
+        else:
+            system_prompt = self._create_prompt_from_model(AIFormulaDetails, base_instruction)
             user_prompt = f"The product concept is: {product_concept}"
 
         return await self._make_ai_call(system_prompt, user_prompt, AIFormulaDetails)

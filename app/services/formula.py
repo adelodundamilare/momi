@@ -29,9 +29,18 @@ class FormulaService:
         self.ingredient_service = IngredientService(ai_provider)
         self.fake = Faker()
 
-    async def generate_formula_from_concept(self, db: Session, product_concept: str, current_user: User, market_insights: Optional[dict] = None) -> Any:
+    async def generate_formula_from_concept(self, db: Session, product_concept: str, current_user: User, market_insights: Optional[dict] = None, conversation_id: Optional[int] = None) -> Any:
+        chat_context = None
+        if conversation_id:
+            from app.services.insight_portal import InsightPortalService
+            insight_service = InsightPortalService(ai_provider=self.ai_provider)
+            try:
+                chat_context = insight_service.create_chat_context_for_insights(db, conversation_id, current_user.id)
+            except ValueError:
+                chat_context = None
+
         try:
-            ai_formula_details = await self.ai_provider.generate_formula_details(product_concept, market_insights)
+            ai_formula_details = await self.ai_provider.generate_formula_details_with_context(product_concept, market_insights, chat_context)
         except AIProviderError as e:
             raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=f"AI service failed to generate formula details: {e}")
 
@@ -43,7 +52,7 @@ class FormulaService:
                 if isinstance(result, Exception):
                     print(f"An enrichment task failed after all retries: {result}")
 
-        return self._create_formula_with_ingredients(db, ai_formula_details, product_concept, formula_ingredients_create, current_user.id)
+        return self._create_formula_with_ingredients(db, ai_formula_details, product_concept, formula_ingredients_create, current_user.id, conversation_id)
 
     def _prepare_ingredients_data(self, db: Session, ai_ingredients: List[Any]):
         formula_ingredients_create = []
@@ -94,14 +103,14 @@ class FormulaService:
 
         return formula_ingredients_create, enrichment_tasks
 
-    def _create_formula_with_ingredients(self, db: Session, ai_formula_details: Any, product_concept: str, ingredients_data: List[FormulaIngredientCreate], author_id: int):
+    def _create_formula_with_ingredients(self, db: Session, ai_formula_details: Any, product_concept: str, ingredients_data: List[FormulaIngredientCreate], author_id: int, conversation_id: Optional[int] = None):
         formula_create_data = FormulaCreate(
             name=ai_formula_details.formula_name,
             description=ai_formula_details.formula_description,
             product_concept=product_concept,
             ingredients=ingredients_data,
         )
-        return formula_crud.create_with_author(db, obj_in=formula_create_data, author_id=author_id)
+        return formula_crud.create_with_author(db, obj_in=formula_create_data, author_id=author_id, conversation_id=conversation_id)
 
     def get_formula(self, db: Session, id: int):
         return formula_crud.get(db, id=id)

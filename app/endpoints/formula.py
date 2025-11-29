@@ -53,10 +53,15 @@ async def generate_formula_from_concept(
 ):
     """
     Generates a formula based on a product concept using AI.
-    Optionally uses market insights to create more informed formulas.
+    Optionally uses market insights and conversation context to create more informed formulas.
     """
+    if request.conversation_id:
+        from app.services.chat import ChatService
+        chat_service = ChatService()
+        chat_service.validate_conversation_access(db, request.conversation_id, current_user.id)
+
     generated_formula_data = await formula_service.generate_formula_from_concept(
-        db, request.product_concept, current_user, request.market_insights
+        db, request.product_concept, current_user, request.market_insights, request.conversation_id
     )
     formula_response = Formula.from_orm(generated_formula_data)
     return APIResponse(message="Formula generated successfully", data=formula_response)

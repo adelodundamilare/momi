@@ -28,10 +28,10 @@ class CRUDFormula(CRUDBase[Formula, FormulaCreate, FormulaUpdate]):
         )
 
     def create_with_author(
-        self, db: Session, *, obj_in: FormulaCreate, author_id: int
+        self, db: Session, *, obj_in: FormulaCreate, author_id: int, conversation_id: Optional[int] = None
     ) -> Formula:
         formula_data = obj_in.dict(exclude={"ingredients"})
-        db_formula = Formula(**formula_data, author_id=author_id)
+        db_formula = Formula(**formula_data, author_id=author_id, conversation_id=conversation_id)
         db.add(db_formula)
         db.commit()
         db.refresh(db_formula)

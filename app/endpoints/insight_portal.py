@@ -66,7 +66,8 @@ async def get_insight_portal(
     return APIResponse(
         message="Insight portal data retrieved successfully",
         data=InsightPortal(
-            top_ingredient=ai_generated_data.identified_ingredient,
+            conversation_id=conversation_id,
+            top_ingredient=ai_generated_data.top_ingredient,
             top_ingredient_mentions=top_ingredient_mentions,
             shared_product_concepts=shared_product_concepts_list,
             company_competitors=ai_generated_data.company_competitors,

@@ -22,9 +22,11 @@ class Formula(Base):
     description = Column(String, nullable=True)
     product_concept = Column(String, nullable=True)
     author_id = Column(Integer, ForeignKey("users.id"))
+    conversation_id = Column(Integer, ForeignKey("conversations.id"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     author = relationship("User")
+    conversation = relationship("Conversation")
     ingredients = relationship("FormulaIngredient")
     marketing_copy = relationship("MarketingCopy", back_populates="formula", uselist=False)
