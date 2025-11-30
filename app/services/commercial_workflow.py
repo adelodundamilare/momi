@@ -9,10 +9,13 @@ from app.schemas.commercial_workflow_analysis import (
     CommercializationAnalysisOutput,
     WorkflowRequest,
     PackagingSpec,
-    Task
+    Task,
+    UpdateTimelineRequest,
+    TimelineAdjustmentRequest
 )
 from app.services.ai_provider import OpenAIProvider, AIProviderError
 from app.crud.formula import formula as formula_crud
+from app.models.commercial_timeline import CommercialTimeline
 
 class CommercialWorkflowService:
     def __init__(self, ai_provider: OpenAIProvider = OpenAIProvider()):
@@ -75,7 +78,7 @@ class CommercialWorkflowService:
         except AIProviderError as e:
             raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=f"AI service failed: {e}")
 
-        return CommercializationAnalysisOutput(
+        result = CommercializationAnalysisOutput(
             product_id=workflow_request.product_id,
             product_name=workflow_request.product_name,
             generated_at=datetime.utcnow().isoformat(),
@@ -85,6 +88,18 @@ class CommercialWorkflowService:
             supplier_analysis=supplier_analysis.model_dump(),
             cost_analysis=cost_analysis.model_dump()
         )
+
+        # Save timeline to database
+        timeline_data = ai_insights.timeline_data.model_dump()
+        db_timeline = CommercialTimeline(
+            formula_id=formula_id,
+            timeline_data=timeline_data,
+            is_custom=False
+        )
+        db.add(db_timeline)
+        db.commit()
+
+        return result
 
     def _define_base_tasks(self) -> Dict[str, Task]:
         return {
@@ -96,6 +111,88 @@ class CommercialWorkflowService:
             "distribution_setup": Task(stage_name="Distribution Setup", duration_weeks=0, can_parallelize=True, dependencies=["packaging"], tasks=[], notes=""),
             "launch_preparation": Task(stage_name="Launch Preparation", duration_weeks=0, can_parallelize=False, dependencies=["quality_assurance", "distribution_setup"], tasks=[], notes=""),
         }
+
+    def update_timeline(self, db: Session, formula_id: int, update_request: UpdateTimelineRequest) -> Dict:
+        """Update timeline stages with custom adjustments"""
+        timeline = db.query(CommercialTimeline).filter(
+            CommercialTimeline.formula_id == formula_id
+        ).order_by(CommercialTimeline.updated_at.desc()).first()
+
+        if not timeline:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Timeline not found for formula")
+
+        timeline_data = timeline.timeline_data
+        stages = timeline_data.get("stages", [])
+
+        # Apply adjustments
+        for adjustment in update_request.adjustments:
+            for stage in stages:
+                if stage.get("stage_name") == adjustment.stage_name:
+                    if adjustment.duration_weeks is not None:
+                        stage["duration_weeks"] = adjustment.duration_weeks
+                    if adjustment.dependencies is not None:
+                        stage["dependencies"] = adjustment.dependencies
+                    if adjustment.can_parallelize is not None:
+                        stage["can_parallelize"] = adjustment.can_parallelize
+                    if adjustment.notes is not None:
+                        stage["notes"] = adjustment.notes
+                    break
+
+        # Recalculate timeline metrics
+        timeline_data["stages"] = stages
+        timeline_data = self._recalculate_timeline(timeline_data)
+
+        # Update database
+        timeline.timeline_data = timeline_data
+        timeline.is_custom = True
+        db.commit()
+        db.refresh(timeline)
+
+        return {
+            "id": timeline.id,
+            "formula_id": timeline.formula_id,
+            "timeline_data": timeline.timeline_data,
+            "is_custom": timeline.is_custom,
+            "created_at": timeline.created_at.isoformat(),
+            "updated_at": timeline.updated_at.isoformat()
+        }
+
+    def get_timeline(self, db: Session, formula_id: int) -> Dict:
+        """Retrieve the latest timeline for a formula"""
+        timeline = db.query(CommercialTimeline).filter(
+            CommercialTimeline.formula_id == formula_id
+        ).order_by(CommercialTimeline.updated_at.desc()).first()
+
+        if not timeline:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Timeline not found for formula")
+
+        return {
+            "id": timeline.id,
+            "formula_id": timeline.formula_id,
+            "timeline_data": timeline.timeline_data,
+            "is_custom": timeline.is_custom,
+            "created_at": timeline.created_at.isoformat(),
+            "updated_at": timeline.updated_at.isoformat()
+        }
+
+    def _recalculate_timeline(self, timeline_data: Dict) -> Dict:
+        """Recalculate timeline metrics based on adjusted stages"""
+        stages = timeline_data.get("stages", [])
+        
+        # Calculate sequential weeks (sum of all durations)
+        sequential_weeks = sum(stage.get("duration_weeks", 0) for stage in stages)
+        
+        # Calculate optimized weeks (simplified: account for parallelization)
+        optimized_weeks = sequential_weeks
+        parallelizable = [s for s in stages if s.get("can_parallelize")]
+        if parallelizable:
+            optimized_weeks = sequential_weeks - (len(parallelizable) * 0.25)
+        
+        timeline_data["sequential_weeks"] = sequential_weeks
+        timeline_data["optimized_weeks"] = max(optimized_weeks, sequential_weeks * 0.75)
+        timeline_data["time_saved_weeks"] = timeline_data["sequential_weeks"] - timeline_data["optimized_weeks"]
+        
+        return timeline_data
 
     def _parse_delivery_duration(self, duration_str: str) -> int:
         duration_str = duration_str.lower()

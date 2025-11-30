@@ -79,16 +79,20 @@ class CommercializationAnalysisOutput(BaseModel):
     cost_analysis: Dict[str, Any]
     sustainability_score: Optional[Dict[str, Any]] = None
 
-# --- For AI-driven Timeline Output ---
-class ParallelizationOpportunity(BaseModel):
-    stages: List[str]
-    savings_weeks: float
-    feasibility: str
+class TimelineAdjustmentRequest(BaseModel):
+    stage_name: str
+    duration_weeks: Optional[float] = None
+    dependencies: Optional[List[str]] = None
+    can_parallelize: Optional[bool] = None
+    notes: Optional[str] = None
 
-class AITimelineOutput(BaseModel):
-    stages: List[Task]
-    sequential_weeks: float
-    optimized_weeks: float
-    time_saved_weeks: float
-    critical_path: List[str]
-    parallelization_opportunities: List[ParallelizationOpportunity]
+class UpdateTimelineRequest(BaseModel):
+    adjustments: List[TimelineAdjustmentRequest]
+
+class CommercialTimelineResponse(BaseModel):
+    id: int
+    formula_id: int
+    timeline_data: Dict[str, Any]
+    is_custom: bool
+    created_at: str
+    updated_at: str
